@@ -81,16 +81,15 @@ export default function BindingsPanel({ targetProp, onClose }: Props) {
       <div className="flex-1 overflow-y-auto">
         {tab === 'expression' ? (
           <div className="p-2 space-y-2">
-            <div className="text-xs text-editor-muted">
-              JS expression with <code className="bg-editor-active px-0.5 rounded">ctx</code> context
-            </div>
             <ExpressionEditor
               value={expression || (currentBinding?.kind === 'expression' ? currentBinding.expression : '')}
               onChange={setExpression}
               placeholder={`"Hello " + ctx.props.name`}
             />
-            <div className="text-[10px] text-editor-muted bg-editor-active rounded p-1.5 font-mono">
-              ctx.props • ctx.state • ctx.sources.name • ctx.env.now
+            <div className="text-[10px] text-editor-muted bg-editor-active rounded p-1.5 font-mono space-y-0.5">
+              <div>ctx.props • ctx.sources.name • ctx.parent.props • ctx.env.now</div>
+              <div className="opacity-70">Single expression: no return needed</div>
+              <div className="opacity-70">Multi-line (const/let/if): use explicit return</div>
             </div>
             <div className="flex gap-1.5">
               <button
