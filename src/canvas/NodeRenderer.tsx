@@ -29,8 +29,10 @@ export default function NodeRenderer({ node, parent = null, index = 0, isRoot = 
     disabled: !acceptsChildren || previewMode,
   })
 
+  const updateNodeProps = useEditorStore(s => s.updateNodeProps)
+
   const resolvedProps = useMemo(() => {
-    const ctx = buildContext(node, dataSourceStates, index, parent)
+    const ctx = buildContext(node, dataSourceStates, index, parent, { updateNodeProps })
     const resolved: Record<string, unknown> = { ...node.props }
     for (const [propName, binding] of Object.entries(node.bindings)) {
       try {
@@ -46,7 +48,7 @@ export default function NodeRenderer({ node, parent = null, index = 0, isRoot = 
       Object.assign(resolved, handlers)
     }
     return resolved
-  }, [node, dataSourceStates, index, parent, previewMode])
+  }, [node, dataSourceStates, index, parent, previewMode, updateNodeProps])
 
   if (!def) {
     return (

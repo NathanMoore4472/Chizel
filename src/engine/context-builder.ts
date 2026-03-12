@@ -9,6 +9,16 @@ interface NodeSnapshot {
   index: number
 }
 
+export interface CtxActions {
+  /**
+   * Update props on a node.
+   * - setProps(patch)           → updates the current node
+   * - setProps(nodeId, patch)   → updates any node by id
+   */
+  setProps(patch: Record<string, unknown>): void
+  setProps(nodeId: string, patch: Record<string, unknown>): void
+}
+
 export interface EvalContext {
   props: Record<string, unknown>
   state: Record<string, unknown>
@@ -25,6 +35,8 @@ export interface EvalContext {
     now: number
     url: string
   }
+  /** Write-back actions available inside event handlers */
+  actions: CtxActions
 }
 
 function snapshot(node: ComponentNode, index: number): NodeSnapshot {
@@ -37,15 +49,35 @@ function snapshot(node: ComponentNode, index: number): NodeSnapshot {
   }
 }
 
+/** Passed in by NodeRenderer so event handlers can call store actions */
+export interface ContextActions {
+  updateNodeProps: (id: string, props: Record<string, unknown>) => void
+}
+
 export function buildContext(
   node: ComponentNode,
   dataSourceStates: Record<string, DataSourceState>,
   index = 0,
-  parent: ComponentNode | null = null
+  parent: ComponentNode | null = null,
+  storeActions?: ContextActions
 ): EvalContext {
   const sources: Record<string, unknown> = {}
   for (const [name, dsState] of Object.entries(dataSourceStates)) {
     sources[name] = dsState.data
+  }
+
+  const actions: CtxActions = {
+    setProps(nodeIdOrPatch: string | Record<string, unknown>, patch?: Record<string, unknown>) {
+      if (!storeActions) {
+        console.warn('[Chizel] ctx.actions.setProps called outside of an event handler')
+        return
+      }
+      if (typeof nodeIdOrPatch === 'string' && patch) {
+        storeActions.updateNodeProps(nodeIdOrPatch, patch)
+      } else if (typeof nodeIdOrPatch === 'object') {
+        storeActions.updateNodeProps(node.id, nodeIdOrPatch)
+      }
+    },
   }
 
   return {
@@ -64,5 +96,6 @@ export function buildContext(
       now: Date.now(),
       url: typeof window !== 'undefined' ? window.location.href : '',
     },
+    actions,
   }
 }
