@@ -6,6 +6,7 @@ import {
   removeNode as removeNodeOp,
   moveNode as moveNodeOp,
   updateNodeById,
+  findParent,
 } from '@/utils/tree-ops'
 import { deepClone } from '@/utils/deep-clone'
 
@@ -14,6 +15,8 @@ export interface TreeSlice {
   addNode: (node: ComponentNode, parentId: string | null, x?: number, y?: number) => void
   removeNode: (id: string) => void
   moveNode: (nodeId: string, newParentId: string | null, newIndex: number) => void
+  moveNodeUp: (nodeId: string) => void
+  moveNodeDown: (nodeId: string) => void
   updateNodeProps: (id: string, props: Record<string, unknown>) => void
   updateNodeStyle: (id: string, style: ComponentNode['style']) => void
   updateNodeLabel: (id: string, label: string) => void
@@ -100,6 +103,30 @@ export const createTreeSlice: StateCreator<EditorState, [['zustand/immer', never
     get().snapshot()
     set(state => {
       state.tree = moveNodeOp(state.tree, nodeId, newParentId, newIndex)
+    })
+  },
+
+  moveNodeUp: (nodeId) => {
+    const { tree } = get()
+    const parent = findParent(tree, nodeId)
+    const siblings = parent ? parent.children : tree
+    const idx = siblings.findIndex(n => n.id === nodeId)
+    if (idx <= 0) return
+    get().snapshot()
+    set(state => {
+      state.tree = moveNodeOp(state.tree, nodeId, parent?.id ?? null, idx - 1)
+    })
+  },
+
+  moveNodeDown: (nodeId) => {
+    const { tree } = get()
+    const parent = findParent(tree, nodeId)
+    const siblings = parent ? parent.children : tree
+    const idx = siblings.findIndex(n => n.id === nodeId)
+    if (idx < 0 || idx >= siblings.length - 1) return
+    get().snapshot()
+    set(state => {
+      state.tree = moveNodeOp(state.tree, nodeId, parent?.id ?? null, idx + 1)
     })
   },
 

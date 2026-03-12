@@ -1,6 +1,7 @@
 import React from 'react'
 import { useEditorStore } from '@/store'
-import { ZoomIn, ZoomOut, Undo2, Redo2, Eye, EyeOff, RotateCcw } from 'lucide-react'
+import { ZoomIn, ZoomOut, Undo2, Redo2, Eye, EyeOff, RotateCcw, ArrowUp, ArrowDown } from 'lucide-react'
+import { findParent } from '@/utils/tree-ops'
 
 export default function CanvasToolbar() {
   const zoom = useEditorStore(s => s.zoom)
@@ -11,6 +12,18 @@ export default function CanvasToolbar() {
   const togglePreviewMode = useEditorStore(s => s.togglePreviewMode)
   const past = useEditorStore(s => s.history.past)
   const future = useEditorStore(s => s.history.future)
+  const selectedId = useEditorStore(s => s.selectedId)
+  const tree = useEditorStore(s => s.tree)
+  const moveNodeUp = useEditorStore(s => s.moveNodeUp)
+  const moveNodeDown = useEditorStore(s => s.moveNodeDown)
+
+  // Work out whether up/down are possible for the selected node
+  const canMove = selectedId !== null
+  const parent = selectedId ? findParent(tree, selectedId) : null
+  const siblings = parent ? parent.children : tree
+  const selectedIndex = selectedId ? siblings.findIndex(n => n.id === selectedId) : -1
+  const canMoveUp = canMove && selectedIndex > 0
+  const canMoveDown = canMove && selectedIndex >= 0 && selectedIndex < siblings.length - 1
 
   return (
     <div className="flex items-center gap-1 px-2 py-1 bg-editor-panel border-b border-editor-border">
@@ -30,6 +43,26 @@ export default function CanvasToolbar() {
         title="Redo (Ctrl+Y)"
       >
         <Redo2 size={14} />
+      </button>
+
+      <div className="w-px h-4 bg-editor-border mx-1" />
+
+      {/* Layer order */}
+      <button
+        onClick={() => selectedId && moveNodeUp(selectedId)}
+        disabled={!canMoveUp}
+        className="p-1 rounded hover:bg-editor-hover disabled:opacity-30 text-editor-text"
+        title="Move layer up"
+      >
+        <ArrowUp size={14} />
+      </button>
+      <button
+        onClick={() => selectedId && moveNodeDown(selectedId)}
+        disabled={!canMoveDown}
+        className="p-1 rounded hover:bg-editor-hover disabled:opacity-30 text-editor-text"
+        title="Move layer down"
+      >
+        <ArrowDown size={14} />
       </button>
 
       <div className="w-px h-4 bg-editor-border mx-1" />

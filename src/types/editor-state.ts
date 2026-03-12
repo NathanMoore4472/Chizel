@@ -13,6 +13,8 @@ export interface EditorState {
   addNode: (node: ComponentNode, parentId: string | null, x?: number, y?: number) => void
   removeNode: (id: string) => void
   moveNode: (nodeId: string, newParentId: string | null, newIndex: number) => void
+  moveNodeUp: (nodeId: string) => void
+  moveNodeDown: (nodeId: string) => void
   updateNodeProps: (id: string, props: Record<string, unknown>) => void
   updateNodeStyle: (id: string, style: ComponentNode['style']) => void
   updateNodeLabel: (id: string, label: string) => void
