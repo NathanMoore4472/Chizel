@@ -3,6 +3,7 @@ import { useEditorStore } from '@/store'
 import { useSelectedNode } from '@/hooks/useSelectedNode'
 import { getComponent } from '@/registry'
 import PropField from './PropField'
+import EmbeddedViewParams from './EmbeddedViewParams'
 import { Settings, Plus, Trash2 } from 'lucide-react'
 import type { CustomPropType } from '@/types'
 
@@ -83,6 +84,9 @@ export default function PropsPanel({ onOpenBindings }: Props) {
             onBindingClick={() => onOpenBindings(propName)}
           />
         ))}
+
+        {/* Discovered params for EmbeddedView */}
+        {node.type === 'EmbeddedView' && <EmbeddedViewParams node={node} />}
 
         {/* Custom props */}
         <div className="mt-3 pt-2 border-t border-editor-border/50">

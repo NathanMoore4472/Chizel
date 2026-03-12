@@ -1,5 +1,6 @@
 import { readTextFile, writeTextFile } from '@tauri-apps/plugin-fs'
 import { open, save, message } from '@tauri-apps/plugin-dialog'
+import { invalidateViewCache } from '@/engine/view-loader'
 
 const FILE_FILTERS = [{ name: 'Chizel Project', extensions: ['chizel'] }]
 
@@ -21,6 +22,7 @@ export async function saveProjectFile(json: string, currentPath?: string): Promi
     })
     if (!path) return null
     await writeTextFile(path, json)
+    invalidateViewCache(path)
     return path
   } catch (e) {
     await message(`Failed to save: ${e}`, { title: 'Save Error', kind: 'error' })

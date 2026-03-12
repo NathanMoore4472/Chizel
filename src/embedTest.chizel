@@ -1,0 +1,93 @@
+{
+  "tree": [
+    {
+      "id": "root-frame",
+      "type": "Frame",
+      "label": "Frame",
+      "props": {
+        "layout": "flex",
+        "direction": "column",
+        "gap": 16,
+        "padding": 24,
+        "background": "#1e1e1e",
+        "align": "stretch",
+        "justify": "flex-start",
+        "Text1": "Label1",
+        "Text2": "Label2"
+      },
+      "bindings": {},
+      "customProps": [
+        {
+          "name": "Text1",
+          "type": "string"
+        },
+        {
+          "name": "Text2",
+          "type": "string"
+        }
+      ],
+      "children": [
+        {
+          "id": "4NDq2sWyha",
+          "type": "Label",
+          "props": {
+            "text": "Label",
+            "fontSize": 12,
+            "color": "#858585",
+            "fontWeight": "normal",
+            "uppercase": false,
+            "letterSpacing": 0
+          },
+          "bindings": {
+            "text": {
+              "kind": "expression",
+              "propName": "text",
+              "expression": "ctx.parent.props.Text1"
+            }
+          },
+          "customProps": [],
+          "events": {},
+          "children": [],
+          "parentId": "root-frame",
+          "locked": false,
+          "visible": true
+        },
+        {
+          "id": "wbtvRG3f51",
+          "type": "Label",
+          "props": {
+            "text": "Label",
+            "fontSize": 12,
+            "color": "#858585",
+            "fontWeight": "normal",
+            "uppercase": false,
+            "letterSpacing": 0,
+            "text2": ""
+          },
+          "bindings": {
+            "text": {
+              "kind": "expression",
+              "propName": "text",
+              "expression": "ctx.parent.props.Text2"
+            }
+          },
+          "customProps": [
+            {
+              "name": "text2",
+              "type": "string"
+            }
+          ],
+          "events": {},
+          "children": [],
+          "parentId": "root-frame",
+          "locked": false,
+          "visible": true
+        }
+      ],
+      "parentId": null,
+      "locked": false,
+      "visible": true
+    }
+  ],
+  "dataSources": []
+}
