@@ -14,9 +14,10 @@ interface Props {
   binding?: Binding
   onChange: (value: unknown) => void
   onBindingClick: () => void
+  customBadge?: React.ReactNode
 }
 
-export default function PropField({ propName, schema, value, binding, onChange, onBindingClick }: Props) {
+export default function PropField({ propName, schema, value, binding, onChange, onBindingClick, customBadge }: Props) {
   const label = schema.label ?? propName
 
   return (
@@ -24,6 +25,7 @@ export default function PropField({ propName, schema, value, binding, onChange, 
       <div className="flex items-center gap-1">
         <span className="text-xs text-editor-muted flex-1 truncate" title={label}>
           {label}
+          {customBadge}
         </span>
         <BindingIndicator binding={binding} onClick={onBindingClick} />
       </div>

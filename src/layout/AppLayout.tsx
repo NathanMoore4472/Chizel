@@ -98,6 +98,7 @@ export default function AppLayout() {
         type: activeData.type,
         props: { ...def.defaultProps },
         bindings: {},
+        customProps: [],
         children: [],
         parentId: targetId,
         locked: false,

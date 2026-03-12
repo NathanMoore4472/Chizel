@@ -1,6 +1,6 @@
 import type { StateCreator } from 'zustand'
 import type { EditorState } from '@/types'
-import type { ComponentNode } from '@/types/component-node'
+import type { ComponentNode, CustomPropDef, CustomPropType } from '@/types/component-node'
 import {
   insertNode,
   removeNode as removeNodeOp,
@@ -20,6 +20,9 @@ export interface TreeSlice {
   setNodeVisible: (id: string, visible: boolean) => void
   setNodeLocked: (id: string, locked: boolean) => void
   duplicateNode: (id: string) => void
+  addCustomProp: (nodeId: string, def: CustomPropDef) => void
+  removeCustomProp: (nodeId: string, propName: string) => void
+  renameCustomProp: (nodeId: string, oldName: string, newName: string) => void
 }
 
 const ROOT_FRAME_ID = 'root-frame'
@@ -41,12 +44,19 @@ const initialTree: ComponentNode[] = [
       justify: 'flex-start',
     },
     bindings: {},
+    customProps: [],
     children: [],
     parentId: null,
     locked: false,
     visible: true,
   },
 ]
+
+const defaultForType = (type: CustomPropType): unknown => {
+  if (type === 'number') return 0
+  if (type === 'boolean') return false
+  return ''
+}
 
 export const createTreeSlice: StateCreator<EditorState, [['zustand/immer', never]], [], TreeSlice> = (set, get) => ({
   tree: initialTree,
@@ -56,6 +66,7 @@ export const createTreeSlice: StateCreator<EditorState, [['zustand/immer', never
     set(state => {
       const newNode: ComponentNode = {
         ...node,
+        customProps: node.customProps ?? [],
         parentId,
         style: x !== undefined && y !== undefined ? { ...node.style, x, y } : node.style,
       }
@@ -127,7 +138,6 @@ export const createTreeSlice: StateCreator<EditorState, [['zustand/immer', never
           result.push({ ...node, children: findAndDuplicate(node.children, targetId) })
           if (node.id === targetId) {
             const clone = deepClone(node)
-            // Generate new IDs for the clone
             function reId(n: ComponentNode): ComponentNode {
               return {
                 ...n,
@@ -141,6 +151,58 @@ export const createTreeSlice: StateCreator<EditorState, [['zustand/immer', never
         return result
       }
       state.tree = findAndDuplicate(state.tree, id)
+    })
+  },
+
+  addCustomProp: (nodeId, def) => {
+    set(state => {
+      state.tree = updateNodeById(state.tree, nodeId, node => {
+        // Don't add duplicate names
+        if (node.customProps.some(p => p.name === def.name)) return node
+        return {
+          ...node,
+          customProps: [...node.customProps, def],
+          props: { ...node.props, [def.name]: defaultForType(def.type) },
+        }
+      })
+    })
+  },
+
+  removeCustomProp: (nodeId, propName) => {
+    set(state => {
+      state.tree = updateNodeById(state.tree, nodeId, node => {
+        const props = { ...node.props }
+        delete props[propName]
+        const bindings = { ...node.bindings }
+        delete bindings[propName]
+        return {
+          ...node,
+          customProps: node.customProps.filter(p => p.name !== propName),
+          props,
+          bindings,
+        }
+      })
+    })
+  },
+
+  renameCustomProp: (nodeId, oldName, newName) => {
+    set(state => {
+      state.tree = updateNodeById(state.tree, nodeId, node => {
+        if (!newName.trim() || node.customProps.some(p => p.name === newName)) return node
+        const props = { ...node.props, [newName]: node.props[oldName] }
+        delete props[oldName]
+        const bindings = { ...node.bindings }
+        if (bindings[oldName]) {
+          bindings[newName] = { ...bindings[oldName], propName: newName }
+          delete bindings[oldName]
+        }
+        return {
+          ...node,
+          customProps: node.customProps.map(p => p.name === oldName ? { ...p, name: newName } : p),
+          props,
+          bindings,
+        }
+      })
     })
   },
 })

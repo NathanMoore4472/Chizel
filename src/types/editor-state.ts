@@ -1,4 +1,4 @@
-import type { ComponentNode } from './component-node'
+import type { ComponentNode, CustomPropDef } from './component-node'
 import type { Binding } from './binding'
 import type { DataSource, DataSourceState } from './data-source'
 
@@ -19,6 +19,9 @@ export interface EditorState {
   setNodeVisible: (id: string, visible: boolean) => void
   setNodeLocked: (id: string, locked: boolean) => void
   duplicateNode: (id: string) => void
+  addCustomProp: (nodeId: string, def: CustomPropDef) => void
+  removeCustomProp: (nodeId: string, propName: string) => void
+  renameCustomProp: (nodeId: string, oldName: string, newName: string) => void
 
   // Selection
   selectedId: string | null
