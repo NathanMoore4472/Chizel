@@ -28,7 +28,10 @@ export default function NumberField({ schema, value, onChange }: Props) {
           max={schema.max}
           step={schema.step ?? 1}
           onChange={e => onChange(Number(e.target.value))}
-          className="w-16 accent-blue-500"
+          className="w-16"
+          style={{
+            '--range-fill': `${((num - schema.min) / (schema.max - schema.min)) * 100}%`,
+          } as React.CSSProperties}
         />
       )}
     </div>
