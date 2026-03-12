@@ -1,9 +1,19 @@
 export function initBuiltIns() {
-  // Side-effect imports to register all built-in components
+  // Basic
   import('./Button')
   import('./Text')
+  import('./Label')
+  import('./Badge')
+  import('./Image')
+  import('./Divider')
+  // Form
   import('./Input')
+  import('./Select')
+  // Layout
   import('./Container')
+  import('./FlexContainer')
   import('./Stack')
   import('./Grid')
+  import('./Card')
+  import('./Spacer')
 }
