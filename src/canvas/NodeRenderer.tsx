@@ -143,12 +143,20 @@ function RenderedNode({
     )
   }
 
+  const hasCustomStyle = node.extraClasses || node.customCss
+  // Unique CSS class for scoping custom CSS rules
+  const scopeClass = `cn-${node.id}`
+
+  // Classes applied to the wrapper: user's extra classes + scope class (for CSS targeting)
+  const wrapperClass = [node.extraClasses, node.customCss ? scopeClass : ''].filter(Boolean).join(' ') || undefined
+
   // Wrap with droppable ref + over-highlight for container nodes
   if (dropRef) {
     return (
       <div
         ref={dropRef}
         data-node-id={node.id}
+        className={wrapperClass}
         style={{
           position: 'relative',
           outline: isOver ? '2px dashed #3b82f6' : undefined,
@@ -157,6 +165,21 @@ function RenderedNode({
           borderRadius: 4,
         }}
       >
+        {node.customCss && (
+          <style>{`.${scopeClass} { ${node.customCss} }`}</style>
+        )}
+        {rendered}
+      </div>
+    )
+  }
+
+  // For leaf nodes only add a wrapper when needed
+  if (hasCustomStyle) {
+    return (
+      <div className={wrapperClass} data-node-id={node.id}>
+        {node.customCss && (
+          <style>{`.${scopeClass} { ${node.customCss} }`}</style>
+        )}
         {rendered}
       </div>
     )

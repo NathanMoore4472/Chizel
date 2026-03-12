@@ -51,6 +51,8 @@ export default function FileMenu() {
         bindings: {},
         customProps: [],
         events: {},
+        extraClasses: '',
+        customCss: '',
         children: [],
         parentId: null,
         locked: false,

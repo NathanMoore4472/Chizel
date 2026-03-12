@@ -34,6 +34,8 @@ export interface EditorState {
   // Events
   setEvent: (nodeId: string, eventName: string, code: string) => void
   removeEvent: (nodeId: string, eventName: string) => void
+  setNodeExtraClasses: (nodeId: string, classes: string) => void
+  setNodeCustomCss: (nodeId: string, css: string) => void
 
   // Data sources
   dataSources: DataSource[]

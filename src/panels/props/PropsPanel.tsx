@@ -4,7 +4,7 @@ import { useSelectedNode } from '@/hooks/useSelectedNode'
 import { getComponent } from '@/registry'
 import PropField from './PropField'
 import EmbeddedViewParams from './EmbeddedViewParams'
-import { Settings, Plus, Trash2 } from 'lucide-react'
+import { Settings, Plus, Trash2, Paintbrush } from 'lucide-react'
 import type { CustomPropType } from '@/types'
 
 interface Props {
@@ -17,6 +17,8 @@ export default function PropsPanel({ onOpenBindings }: Props) {
   const updateNodeLabel = useEditorStore(s => s.updateNodeLabel)
   const addCustomProp = useEditorStore(s => s.addCustomProp)
   const removeCustomProp = useEditorStore(s => s.removeCustomProp)
+  const setNodeExtraClasses = useEditorStore(s => s.setNodeExtraClasses)
+  const setNodeCustomCss = useEditorStore(s => s.setNodeCustomCss)
 
   const [newPropName, setNewPropName] = useState('')
   const [newPropType, setNewPropType] = useState<CustomPropType>('string')
@@ -87,6 +89,39 @@ export default function PropsPanel({ onOpenBindings }: Props) {
 
         {/* Discovered params for EmbeddedView */}
         {node.type === 'EmbeddedView' && <EmbeddedViewParams node={node} />}
+
+        {/* Style overrides */}
+        <div className="mt-3 pt-2 border-t border-editor-border/50">
+          <div className="flex items-center gap-1 mb-2">
+            <Paintbrush size={10} className="text-editor-muted" />
+            <span className="text-[10px] font-semibold text-editor-muted uppercase tracking-wider">Style</span>
+          </div>
+
+          <div className="space-y-2">
+            <div>
+              <label className="text-[10px] text-editor-muted block mb-1">Extra Classes</label>
+              <input
+                type="text"
+                value={node.extraClasses ?? ''}
+                onChange={e => setNodeExtraClasses(node.id, e.target.value)}
+                placeholder="e.g. shadow-lg rounded-xl"
+                className="w-full bg-editor-active border border-editor-border rounded px-2 py-1 text-xs text-editor-text font-mono focus:outline-none focus:border-blue-500"
+              />
+            </div>
+
+            <div>
+              <label className="text-[10px] text-editor-muted block mb-1">Custom CSS</label>
+              <textarea
+                value={node.customCss ?? ''}
+                onChange={e => setNodeCustomCss(node.id, e.target.value)}
+                placeholder={'color: red;\nborder: 1px solid blue;\nopacity: 0.8;'}
+                rows={4}
+                spellCheck={false}
+                className="w-full bg-editor-active border border-editor-border rounded px-2 py-1 text-xs text-editor-text font-mono resize-none focus:outline-none focus:border-blue-500"
+              />
+            </div>
+          </div>
+        </div>
 
         {/* Custom props */}
         <div className="mt-3 pt-2 border-t border-editor-border/50">

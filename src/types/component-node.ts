@@ -16,6 +16,10 @@ export interface ComponentNode {
   customProps: CustomPropDef[]
   /** Event handlers: key = event name (e.g. 'onClick'), value = JS code string */
   events: Record<string, string>
+  /** Extra CSS class names applied to the component wrapper (Tailwind or custom) */
+  extraClasses: string
+  /** Raw CSS property:value pairs applied to the component wrapper */
+  customCss: string
   children: ComponentNode[]
   parentId: string | null
   locked: boolean

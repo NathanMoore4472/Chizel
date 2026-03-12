@@ -106,6 +106,8 @@ export default function AppLayout() {
         bindings: {},
         customProps: [],
         events: {},
+        extraClasses: '',
+        customCss: '',
         children: [],
         parentId: targetId,
         locked: false,
