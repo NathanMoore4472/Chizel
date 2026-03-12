@@ -21,6 +21,8 @@ import Canvas from '@/canvas/Canvas'
 import LeftSidebar from './LeftSidebar'
 import RightSidebar from './RightSidebar'
 import ResizeHandle from './ResizeHandle'
+import FileMenu from './FileMenu'
+import { isTauri, saveProjectFile, openProjectFile } from '@/utils/file-ops'
 import type { ComponentNode } from '@/types/component-node'
 
 // Pick the smallest (innermost) droppable container the pointer is within.
@@ -121,7 +123,7 @@ export default function AppLayout() {
 
   // Keyboard shortcuts
   useEffect(() => {
-    const handler = (e: KeyboardEvent) => {
+    const handler = async (e: KeyboardEvent) => {
       // Don't fire when typing in an input
       const tag = (e.target as HTMLElement)?.tagName
       if (tag === 'INPUT' || tag === 'TEXTAREA') return
@@ -129,6 +131,24 @@ export default function AppLayout() {
       const mod = e.ctrlKey || e.metaKey
       if (mod && e.key === 'z' && !e.shiftKey) { e.preventDefault(); undo(); return }
       if (mod && (e.key === 'y' || (e.key === 'z' && e.shiftKey))) { e.preventDefault(); redo(); return }
+
+      if (mod && e.key === 's' && isTauri()) {
+        e.preventDefault()
+        const { tree, dataSources, currentFilePath, setCurrentFilePath } = useEditorStore.getState()
+        const json = JSON.stringify({ tree, dataSources }, null, 2)
+        const path = await saveProjectFile(json, e.shiftKey ? undefined : (currentFilePath ?? undefined))
+        if (path) setCurrentFilePath(path)
+        return
+      }
+      if (mod && e.key === 'o' && isTauri()) {
+        e.preventDefault()
+        const result = await openProjectFile()
+        if (!result) return
+        const { path, data } = result as { path: string; data: { tree: any; dataSources: any } }
+        useEditorStore.getState().loadState({ tree: data.tree, dataSources: data.dataSources ?? [] })
+        useEditorStore.getState().setCurrentFilePath(path)
+        return
+      }
 
       const selectedId = useEditorStore.getState().selectedId
       if (mod && e.key === 'c' && selectedId) { e.preventDefault(); copyNode(selectedId); return }
@@ -153,11 +173,11 @@ export default function AppLayout() {
     <DndContext sensors={sensors} collisionDetection={innermostContainer} onDragStart={handleDragStart} onDragEnd={handleDragEnd}>
       <div className="flex h-screen w-screen overflow-hidden bg-editor-bg">
         {/* Header */}
-        <div className="absolute top-0 left-0 right-0 h-8 bg-editor-panel border-b border-editor-border flex items-center px-3 z-50">
+        <div className="absolute top-0 left-0 right-0 h-8 bg-editor-panel border-b border-editor-border flex items-center px-3 gap-3 z-50">
           <span className="text-xs font-bold text-editor-text tracking-wider">
             ◈ CHIZEL
           </span>
-          <span className="text-xs text-editor-muted ml-2">Visual Editor</span>
+          <FileMenu />
         </div>
 
         {/* Main layout below header */}

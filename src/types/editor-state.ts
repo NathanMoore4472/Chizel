@@ -63,4 +63,9 @@ export interface EditorState {
   togglePreviewMode: () => void
   zoom: number
   setZoom: (zoom: number) => void
+
+  // File
+  currentFilePath: string | null
+  setCurrentFilePath: (path: string | null) => void
+  loadState: (state: Partial<Pick<EditorState, 'tree' | 'dataSources'>>) => void
 }

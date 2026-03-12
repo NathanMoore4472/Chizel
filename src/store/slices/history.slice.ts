@@ -1,6 +1,6 @@
 import type { StateCreator } from 'zustand'
 import type { EditorState, HistoryEntry } from '@/types'
-import { current } from 'immer'
+import { current, original } from 'immer'
 
 const MAX_HISTORY = 50
 
@@ -16,6 +16,9 @@ export interface HistorySlice {
   togglePreviewMode: () => void
   zoom: number
   setZoom: (zoom: number) => void
+  currentFilePath: string | null
+  setCurrentFilePath: (path: string | null) => void
+  loadState: (state: Partial<Pick<EditorState, 'tree' | 'dataSources'>>) => void
 }
 
 export const createHistorySlice: StateCreator<EditorState, [['zustand/immer', never]], [], HistorySlice> = (set) => ({
@@ -73,5 +76,20 @@ export const createHistorySlice: StateCreator<EditorState, [['zustand/immer', ne
 
   setZoom: (zoom) => {
     set(state => { state.zoom = zoom })
+  },
+
+  currentFilePath: null,
+
+  setCurrentFilePath: (path) => {
+    set(state => { state.currentFilePath = path })
+  },
+
+  loadState: (loaded) => {
+    set(state => {
+      if (loaded.tree) state.tree = loaded.tree
+      if (loaded.dataSources) state.dataSources = loaded.dataSources
+      state.selectedId = null
+      state.history = { past: [], future: [] }
+    })
   },
 })
