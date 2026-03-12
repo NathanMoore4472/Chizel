@@ -16,6 +16,9 @@ export default function StringField({ schema, value, onChange }: Props) {
         onChange={e => onChange(e.target.value)}
         placeholder={schema.placeholder}
         rows={3}
+        spellCheck={false}
+        autoCorrect="off"
+        autoCapitalize="off"
         className="w-full bg-editor-active border border-editor-border rounded px-2 py-1 text-xs text-editor-text font-mono resize-none focus:outline-none focus:border-blue-500"
       />
     )
@@ -26,6 +29,9 @@ export default function StringField({ schema, value, onChange }: Props) {
       value={str}
       onChange={e => onChange(e.target.value)}
       placeholder={schema.placeholder}
+      spellCheck={false}
+      autoCorrect="off"
+      autoCapitalize="off"
       className="w-full bg-editor-active border border-editor-border rounded px-2 py-1 text-xs text-editor-text font-mono focus:outline-none focus:border-blue-500"
     />
   )
