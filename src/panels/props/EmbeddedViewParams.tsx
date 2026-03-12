@@ -5,6 +5,7 @@ import type { ComponentNode, CustomPropDef } from '@/types/component-node'
 import StringField from './fields/StringField'
 import NumberField from './fields/NumberField'
 import BooleanField from './fields/BooleanField'
+import JsonField from './fields/JsonField'
 import { Link } from 'lucide-react'
 
 interface Props {
@@ -69,6 +70,12 @@ function FieldForType({ type, value, onChange }: {
   )
   if (type === 'boolean') return (
     <BooleanField schema={{ kind: 'boolean' }} value={value} onChange={onChange} />
+  )
+  if (type === 'array') return (
+    <JsonField value={value ?? []} onChange={onChange} placeholder={'[\n  "item1"\n]'} rows={3} />
+  )
+  if (type === 'object') return (
+    <JsonField value={value ?? {}} onChange={onChange} placeholder={'{\n  "key": "value"\n}'} rows={3} />
   )
   return (
     <StringField schema={{ kind: 'string' }} value={value} onChange={onChange} />

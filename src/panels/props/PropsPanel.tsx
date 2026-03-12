@@ -5,6 +5,7 @@ import { getComponent } from '@/registry'
 import PropField from './PropField'
 import EmbeddedViewParams from './EmbeddedViewParams'
 import { Settings, Plus, Trash2, Paintbrush } from 'lucide-react'
+import JsonField from './fields/JsonField'
 import type { CustomPropType } from '@/types'
 
 interface Props {
@@ -153,12 +154,12 @@ export default function PropsPanel({ onOpenBindings }: Props) {
               {nameError && (
                 <div className="text-[10px] text-red-400">{nameError}</div>
               )}
-              <div className="flex gap-1">
-                {(['string', 'number', 'boolean'] as CustomPropType[]).map(t => (
+              <div className="flex flex-wrap gap-1">
+                {(['string', 'number', 'boolean', 'array', 'object'] as CustomPropType[]).map(t => (
                   <button
                     key={t}
                     onClick={() => setNewPropType(t)}
-                    className={`flex-1 py-0.5 rounded text-[10px] font-mono border transition-colors ${
+                    className={`px-1.5 py-0.5 rounded text-[10px] font-mono border transition-colors ${
                       newPropType === t
                         ? 'bg-blue-600 border-blue-500 text-white'
                         : 'bg-editor-panel border-editor-border text-editor-muted hover:text-editor-text'
@@ -181,21 +182,56 @@ export default function PropsPanel({ onOpenBindings }: Props) {
           {node.customProps.map(cp => (
             <div key={cp.name} className="group flex items-start gap-1">
               <div className="flex-1 min-w-0">
-                <PropField
-                  propName={cp.name}
-                  schema={
-                    cp.type === 'number'
-                      ? { kind: 'number', label: cp.name }
-                      : cp.type === 'boolean'
-                      ? { kind: 'boolean', label: cp.name }
-                      : { kind: 'string', label: cp.name }
-                  }
-                  value={node.props[cp.name] ?? (cp.type === 'number' ? 0 : cp.type === 'boolean' ? false : '')}
-                  binding={node.bindings[cp.name]}
-                  onChange={v => updateNodeProps(node.id, { [cp.name]: v })}
-                  onBindingClick={() => onOpenBindings(cp.name)}
-                  customBadge={<span className="text-[9px] text-editor-muted font-mono ml-0.5 opacity-60">{cp.type}</span>}
-                />
+                {cp.type === 'array' || cp.type === 'object' ? (
+                  <div className="flex flex-col gap-0.5 py-1.5 border-b border-editor-border/50">
+                    <div className="flex items-center gap-1">
+                      <span className="text-xs text-editor-muted flex-1 truncate">
+                        {cp.name}
+                        <span className="text-[9px] font-mono ml-1 opacity-60">{cp.type}</span>
+                      </span>
+                      <button
+                        onClick={() => onOpenBindings(cp.name)}
+                        title="Add binding"
+                        className={`p-0.5 rounded flex-shrink-0 transition-colors ${
+                          node.bindings[cp.name]
+                            ? 'text-yellow-400 hover:text-yellow-300'
+                            : 'text-editor-muted hover:text-editor-text'
+                        }`}
+                      >
+                        <svg width="10" height="10" viewBox="0 0 24 24" fill={node.bindings[cp.name] ? 'currentColor' : 'none'} stroke="currentColor" strokeWidth="2"><polygon points="13 2 3 14 12 14 11 22 21 10 12 10 13 2"/></svg>
+                      </button>
+                    </div>
+                    {node.bindings[cp.name] ? (
+                      <div className="text-xs text-yellow-400 bg-yellow-400/10 px-2 py-0.5 rounded font-mono truncate">
+                        {node.bindings[cp.name].kind === 'expression'
+                          ? `= ${(node.bindings[cp.name] as any).expression}`
+                          : `@ ${(node.bindings[cp.name] as any).sourceName}`}
+                      </div>
+                    ) : (
+                      <JsonField
+                        value={node.props[cp.name] ?? (cp.type === 'array' ? [] : {})}
+                        onChange={v => updateNodeProps(node.id, { [cp.name]: v })}
+                        placeholder={cp.type === 'array' ? '[\n  "item1",\n  "item2"\n]' : '{\n  "key": "value"\n}'}
+                      />
+                    )}
+                  </div>
+                ) : (
+                  <PropField
+                    propName={cp.name}
+                    schema={
+                      cp.type === 'number'
+                        ? { kind: 'number', label: cp.name }
+                        : cp.type === 'boolean'
+                        ? { kind: 'boolean', label: cp.name }
+                        : { kind: 'string', label: cp.name }
+                    }
+                    value={node.props[cp.name] ?? (cp.type === 'number' ? 0 : cp.type === 'boolean' ? false : '')}
+                    binding={node.bindings[cp.name]}
+                    onChange={v => updateNodeProps(node.id, { [cp.name]: v })}
+                    onBindingClick={() => onOpenBindings(cp.name)}
+                    customBadge={<span className="text-[9px] text-editor-muted font-mono ml-0.5 opacity-60">{cp.type}</span>}
+                  />
+                )}
               </div>
               <button
                 onClick={() => removeCustomProp(node.id, cp.name)}

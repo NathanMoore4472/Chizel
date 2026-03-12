@@ -65,6 +65,8 @@ const initialTree: ComponentNode[] = [
 const defaultForType = (type: CustomPropType): unknown => {
   if (type === 'number') return 0
   if (type === 'boolean') return false
+  if (type === 'array') return []
+  if (type === 'object') return {}
   return ''
 }
 

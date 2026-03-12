@@ -1,6 +1,6 @@
 import type { Binding } from './binding'
 
-export type CustomPropType = 'string' | 'number' | 'boolean'
+export type CustomPropType = 'string' | 'number' | 'boolean' | 'array' | 'object'
 
 export interface CustomPropDef {
   name: string
