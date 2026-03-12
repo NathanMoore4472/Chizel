@@ -39,6 +39,12 @@ export interface EditorState {
   updateDataSource: (name: string, ds: Partial<DataSource>) => void
   setDataSourceState: (name: string, state: Partial<DataSourceState>) => void
 
+  // Clipboard
+  clipboard: { node: ComponentNode; mode: 'copy' | 'cut' } | null
+  copyNode: (id: string) => void
+  cutNode: (id: string) => void
+  pasteNode: (parentId: string) => void
+
   // Drag
   draggingId: string | null
   setDraggingId: (id: string | null) => void

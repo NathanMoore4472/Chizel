@@ -7,6 +7,7 @@ import { createBindingsSlice } from './slices/bindings.slice'
 import { createDataSourcesSlice } from './slices/data-sources.slice'
 import { createDragSlice } from './slices/drag.slice'
 import { createHistorySlice } from './slices/history.slice'
+import { createClipboardSlice } from './slices/clipboard.slice'
 
 export const useEditorStore = create<EditorState>()(
   immer((set, get, store) => ({
@@ -16,5 +17,6 @@ export const useEditorStore = create<EditorState>()(
     ...createDataSourcesSlice(set, get, store),
     ...createDragSlice(set, get, store),
     ...createHistorySlice(set, get, store),
+    ...createClipboardSlice(set, get, store),
   }))
 )

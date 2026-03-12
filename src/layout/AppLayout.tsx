@@ -44,6 +44,10 @@ export default function AppLayout() {
   const setDraggingId = useEditorStore(s => s.setDraggingId)
   const undo = useEditorStore(s => s.undo)
   const redo = useEditorStore(s => s.redo)
+  const copyNode = useEditorStore(s => s.copyNode)
+  const cutNode = useEditorStore(s => s.cutNode)
+  const pasteNode = useEditorStore(s => s.pasteNode)
+  const removeNode = useEditorStore(s => s.removeNode)
 
   const sensors = useSensors(
     useSensor(PointerSensor, { activationConstraint: { distance: 5 } }),
@@ -118,13 +122,27 @@ export default function AppLayout() {
   // Keyboard shortcuts
   useEffect(() => {
     const handler = (e: KeyboardEvent) => {
-      if ((e.ctrlKey || e.metaKey) && e.key === 'z' && !e.shiftKey) {
+      // Don't fire when typing in an input
+      const tag = (e.target as HTMLElement)?.tagName
+      if (tag === 'INPUT' || tag === 'TEXTAREA') return
+
+      const mod = e.ctrlKey || e.metaKey
+      if (mod && e.key === 'z' && !e.shiftKey) { e.preventDefault(); undo(); return }
+      if (mod && (e.key === 'y' || (e.key === 'z' && e.shiftKey))) { e.preventDefault(); redo(); return }
+
+      const selectedId = useEditorStore.getState().selectedId
+      if (mod && e.key === 'c' && selectedId) { e.preventDefault(); copyNode(selectedId); return }
+      if (mod && e.key === 'x' && selectedId) { e.preventDefault(); cutNode(selectedId); return }
+      if (mod && e.key === 'v') {
         e.preventDefault()
-        undo()
+        const { clipboard, selectedId: sel } = useEditorStore.getState()
+        if (!clipboard) return
+        pasteNode(sel ?? ROOT_FRAME_ID)
+        return
       }
-      if ((e.ctrlKey || e.metaKey) && (e.key === 'y' || (e.key === 'z' && e.shiftKey))) {
+      if ((e.key === 'Delete' || e.key === 'Backspace') && selectedId) {
         e.preventDefault()
-        redo()
+        removeNode(selectedId)
       }
     }
     window.addEventListener('keydown', handler)
