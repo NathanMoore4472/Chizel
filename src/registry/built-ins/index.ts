@@ -1,19 +1,15 @@
-export function initBuiltIns() {
-  // Basic
-  import('./Button')
-  import('./Text')
-  import('./Label')
-  import('./Badge')
-  import('./Image')
-  import('./Divider')
-  // Form
-  import('./Input')
-  import('./Select')
-  // Layout
-  import('./Container')
-  import('./FlexContainer')
-  import('./Stack')
-  import('./Grid')
-  import('./Card')
-  import('./Spacer')
-}
+// Static imports so all components are registered synchronously at module load time
+import './Button'
+import './Text'
+import './Label'
+import './Badge'
+import './Image'
+import './Divider'
+import './Input'
+import './Select'
+import './Container'
+import './FlexContainer'
+import './Stack'
+import './Grid'
+import './Card'
+import './Spacer'

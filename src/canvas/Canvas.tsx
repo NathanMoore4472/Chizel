@@ -1,4 +1,4 @@
-import React, { useRef, useCallback } from 'react'
+import React, { useCallback } from 'react'
 import { useDroppable } from '@dnd-kit/core'
 import { useEditorStore } from '@/store'
 import NodeRenderer from './NodeRenderer'
@@ -22,21 +22,26 @@ export default function Canvas() {
   return (
     <div className="flex flex-col h-full bg-editor-bg overflow-hidden">
       <CanvasToolbar />
+      {/* Scroll container — give it an explicit id so drag handler can read its rect */}
       <div
+        id="canvas-scroll-container"
         className="flex-1 overflow-auto relative"
         onClick={handleCanvasClick}
       >
+        {/* Droppable surface — must be tall enough to be hit-tested by dnd-kit */}
         <div
           ref={setNodeRef}
+          id="canvas-drop-root"
           className={cn(
-            'relative min-w-full min-h-full',
+            'relative',
             isOver && !previewMode && 'bg-blue-950/20'
           )}
           style={{
             transform: `scale(${zoom})`,
             transformOrigin: 'top left',
             width: `${100 / zoom}%`,
-            minHeight: `${100 / zoom}%`,
+            /* Guarantee a minimum canvas height so the droppable is always hittable */
+            minHeight: `${100 / zoom * 100}%`,
           }}
           onClick={handleCanvasClick}
         >

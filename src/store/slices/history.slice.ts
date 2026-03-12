@@ -1,6 +1,6 @@
 import type { StateCreator } from 'zustand'
 import type { EditorState, HistoryEntry } from '@/types'
-import { deepClone } from '@/utils/deep-clone'
+import { current } from 'immer'
 
 const MAX_HISTORY = 50
 
@@ -18,7 +18,7 @@ export interface HistorySlice {
   setZoom: (zoom: number) => void
 }
 
-export const createHistorySlice: StateCreator<EditorState, [['zustand/immer', never]], [], HistorySlice> = (set, get) => ({
+export const createHistorySlice: StateCreator<EditorState, [['zustand/immer', never]], [], HistorySlice> = (set) => ({
   history: {
     past: [],
     future: [],
@@ -28,8 +28,10 @@ export const createHistorySlice: StateCreator<EditorState, [['zustand/immer', ne
 
   snapshot: () => {
     set(state => {
+      // current() extracts a plain JS object from the Immer draft —
+      // structuredClone / deepClone cannot serialize Proxy objects.
       const entry: HistoryEntry = {
-        tree: deepClone(state.tree),
+        tree: current(state.tree),
         timestamp: Date.now(),
       }
       state.history.past = [...state.history.past.slice(-MAX_HISTORY + 1), entry]
@@ -43,7 +45,7 @@ export const createHistorySlice: StateCreator<EditorState, [['zustand/immer', ne
       if (past.length === 0) return
       const entry = past[past.length - 1]
       state.history.future = [
-        { tree: deepClone(state.tree), timestamp: Date.now() },
+        { tree: current(state.tree), timestamp: Date.now() },
         ...state.history.future,
       ]
       state.history.past = past.slice(0, -1)
@@ -58,7 +60,7 @@ export const createHistorySlice: StateCreator<EditorState, [['zustand/immer', ne
       const entry = future[0]
       state.history.past = [
         ...state.history.past,
-        { tree: deepClone(state.tree), timestamp: Date.now() },
+        { tree: current(state.tree), timestamp: Date.now() },
       ]
       state.history.future = future.slice(1)
       state.tree = entry.tree

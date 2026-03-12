@@ -42,20 +42,33 @@ export default function AppLayout() {
 
   const handleDragEnd = useCallback((event: DragEndEvent) => {
     setDraggingId(null)
-    const { active, over } = event
-    if (!over) return
-
+    const { active, over, delta } = event
     const activeData = active.data.current
-    const overData = over.data.current
 
     // Palette → Canvas
-    if (activeData?.kind === 'palette' && over.id === 'canvas-root') {
+    // Don't require over.id === 'canvas-root' — over can be null if the droppable
+    // didn't get hit, but we still want to place the node wherever the pointer landed.
+    if (activeData?.kind === 'palette') {
+      // Only ignore drops that land on the tree panel
+      if (over?.data.current?.kind === 'tree') return
+
       const def = getComponent(activeData.type)
       if (!def) return
 
-      // Get drop position from event coordinates
-      const x = (event as any).activatorEvent?.clientX ?? 100
-      const y = (event as any).activatorEvent?.clientY ?? 100
+      // activatorEvent = mousedown position; delta = total movement since then.
+      // Together they give us the actual pointer position at drop time.
+      const activatorEvent = event.activatorEvent as MouseEvent
+      const dropClientX = activatorEvent.clientX + delta.x
+      const dropClientY = activatorEvent.clientY + delta.y
+
+      // Convert from client coords to canvas-relative coords
+      const canvasEl = document.getElementById('canvas-scroll-container')
+      const canvasRect = canvasEl?.getBoundingClientRect()
+      const scrollLeft = canvasEl?.scrollLeft ?? 0
+      const scrollTop = canvasEl?.scrollTop ?? 0
+
+      const x = Math.max(0, dropClientX - (canvasRect?.left ?? 0) + scrollLeft)
+      const y = Math.max(0, dropClientY - (canvasRect?.top ?? 0) + scrollTop)
 
       const newNode: ComponentNode = {
         id: generateId(),
@@ -66,15 +79,15 @@ export default function AppLayout() {
         parentId: null,
         locked: false,
         visible: true,
-        style: { x: Math.max(20, x - 200), y: Math.max(20, y - 60) },
+        style: { x, y },
       }
       addNode(newNode, null)
       return
     }
 
     // Tree → Tree reorder
-    if (activeData?.kind === 'tree' && overData?.kind === 'tree') {
-      moveNode(activeData.nodeId, null, 0)
+    if (active.data.current?.kind === 'tree' && over?.data.current?.kind === 'tree') {
+      moveNode(active.data.current.nodeId, null, 0)
     }
   }, [addNode, moveNode, setDraggingId])
 
