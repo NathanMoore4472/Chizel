@@ -35,6 +35,7 @@ export default function FileMenu() {
         props: { layout: 'absolute', direction: 'column', gap: 16, padding: 24, background: '#1e1e1e', align: 'flex-start', justify: 'flex-start' },
         bindings: {},
         customProps: [],
+        events: {},
         children: [],
         parentId: null,
         locked: false,

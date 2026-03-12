@@ -31,6 +31,10 @@ export interface EditorState {
   setBinding: (nodeId: string, propName: string, binding: Binding) => void
   removeBinding: (nodeId: string, propName: string) => void
 
+  // Events
+  setEvent: (nodeId: string, eventName: string, code: string) => void
+  removeEvent: (nodeId: string, eventName: string) => void
+
   // Data sources
   dataSources: DataSource[]
   dataSourceStates: Record<string, DataSourceState>

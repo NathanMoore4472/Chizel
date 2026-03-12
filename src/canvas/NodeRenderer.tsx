@@ -4,6 +4,7 @@ import type { ComponentNode } from '@/types/component-node'
 import { getComponent } from '@/registry'
 import { evaluateBinding } from '@/engine/binding-evaluator'
 import { buildContext } from '@/engine/context-builder'
+import { buildEventHandlers } from '@/engine/event-executor'
 import { useEditorStore } from '@/store'
 import SelectionOverlay from './SelectionOverlay'
 
@@ -38,8 +39,14 @@ export default function NodeRenderer({ node, parent = null, index = 0, isRoot = 
         resolved[propName] = node.props[propName]
       }
     }
+    // Inject event handlers — only active in preview mode so edit-mode
+    // click events don't fire while selecting components
+    if (previewMode && node.events && Object.keys(node.events).length > 0) {
+      const handlers = buildEventHandlers(node.events, ctx)
+      Object.assign(resolved, handlers)
+    }
     return resolved
-  }, [node, dataSourceStates, index, parent])
+  }, [node, dataSourceStates, index, parent, previewMode])
 
   if (!def) {
     return (

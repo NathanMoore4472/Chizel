@@ -68,5 +68,7 @@ export interface ComponentDefinition {
   childLayout?: (resolvedProps: Record<string, unknown>) => 'flow' | 'absolute'
   /** Hide from the component palette (e.g. Frame root) */
   hidden?: boolean
+  /** Events this component supports, shown first in the events panel */
+  supportedEvents?: string[]
   render: ComponentType<{ node: ComponentNode; resolvedProps: Record<string, unknown>; children?: React.ReactNode }>
 }

@@ -31,15 +31,20 @@ registerComponent({
     disabled: false,
     fullWidth: false,
   },
+  supportedEvents: ['onChange', 'onFocus', 'onBlur', 'onClick'],
   acceptsChildren: false,
   render: ({ resolvedProps }) => {
-    const { placeholder, value, label, type, disabled, fullWidth } = resolvedProps as {
+    const { placeholder, value, label, type, disabled, fullWidth, onChange, onFocus, onBlur, onClick } = resolvedProps as {
       placeholder: string
       value: string
       label: string
       type: string
       disabled: boolean
       fullWidth: boolean
+      onChange?: React.ChangeEventHandler<HTMLInputElement>
+      onFocus?: React.FocusEventHandler<HTMLInputElement>
+      onBlur?: React.FocusEventHandler<HTMLInputElement>
+      onClick?: React.MouseEventHandler<HTMLInputElement>
     }
     return (
       <div className={fullWidth ? 'w-full' : ''}>
@@ -51,6 +56,10 @@ registerComponent({
           placeholder={placeholder}
           defaultValue={value}
           disabled={disabled}
+          onChange={onChange}
+          onFocus={onFocus}
+          onBlur={onBlur}
+          onClick={onClick}
           className="bg-editor-active border border-editor-border rounded px-2 py-1 text-sm text-editor-text focus:outline-none focus:border-blue-500 disabled:opacity-50"
           style={{ width: fullWidth ? '100%' : undefined }}
         />

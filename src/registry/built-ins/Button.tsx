@@ -7,6 +7,7 @@ registerComponent({
   label: 'Button',
   category: 'Basic',
   description: 'A clickable button',
+  supportedEvents: ['onClick', 'onMouseEnter', 'onMouseLeave'],
   propSchema: {
     label: string({ label: 'Label', defaultValue: 'Button' }),
     variant: enumOf(
@@ -29,11 +30,14 @@ registerComponent({
   },
   acceptsChildren: false,
   render: ({ resolvedProps }) => {
-    const { label, variant, disabled, fullWidth } = resolvedProps as {
+    const { label, variant, disabled, fullWidth, onClick, onMouseEnter, onMouseLeave } = resolvedProps as {
       label: string
       variant: string
       disabled: boolean
       fullWidth: boolean
+      onClick?: React.MouseEventHandler
+      onMouseEnter?: React.MouseEventHandler
+      onMouseLeave?: React.MouseEventHandler
     }
     const variantClass = {
       primary: 'bg-blue-600 hover:bg-blue-700 text-white',
@@ -45,6 +49,9 @@ registerComponent({
     return (
       <button
         disabled={disabled}
+        onClick={onClick}
+        onMouseEnter={onMouseEnter}
+        onMouseLeave={onMouseLeave}
         className={`px-3 py-1.5 rounded text-sm font-medium transition-colors ${variantClass} ${fullWidth ? 'w-full' : ''} disabled:opacity-50 disabled:cursor-not-allowed`}
       >
         {label}

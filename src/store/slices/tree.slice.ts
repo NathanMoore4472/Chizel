@@ -23,6 +23,8 @@ export interface TreeSlice {
   addCustomProp: (nodeId: string, def: CustomPropDef) => void
   removeCustomProp: (nodeId: string, propName: string) => void
   renameCustomProp: (nodeId: string, oldName: string, newName: string) => void
+  setEvent: (nodeId: string, eventName: string, code: string) => void
+  removeEvent: (nodeId: string, eventName: string) => void
 }
 
 const ROOT_FRAME_ID = 'root-frame'
@@ -45,6 +47,7 @@ const initialTree: ComponentNode[] = [
     },
     bindings: {},
     customProps: [],
+    events: {},
     children: [],
     parentId: null,
     locked: false,
@@ -67,6 +70,7 @@ export const createTreeSlice: StateCreator<EditorState, [['zustand/immer', never
       const newNode: ComponentNode = {
         ...node,
         customProps: node.customProps ?? [],
+        events: node.events ?? {},
         parentId,
         style: x !== undefined && y !== undefined ? { ...node.style, x, y } : node.style,
       }
@@ -202,6 +206,25 @@ export const createTreeSlice: StateCreator<EditorState, [['zustand/immer', never
           props,
           bindings,
         }
+      })
+    })
+  },
+
+  setEvent: (nodeId, eventName, code) => {
+    set(state => {
+      state.tree = updateNodeById(state.tree, nodeId, node => ({
+        ...node,
+        events: { ...node.events, [eventName]: code },
+      }))
+    })
+  },
+
+  removeEvent: (nodeId, eventName) => {
+    set(state => {
+      state.tree = updateNodeById(state.tree, nodeId, node => {
+        const events = { ...node.events }
+        delete events[eventName]
+        return { ...node, events }
       })
     })
   },

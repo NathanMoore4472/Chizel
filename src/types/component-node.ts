@@ -14,6 +14,8 @@ export interface ComponentNode {
   props: Record<string, unknown>
   bindings: Record<string, Binding>
   customProps: CustomPropDef[]
+  /** Event handlers: key = event name (e.g. 'onClick'), value = JS code string */
+  events: Record<string, string>
   children: ComponentNode[]
   parentId: string | null
   locked: boolean
