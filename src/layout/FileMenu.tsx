@@ -11,14 +11,29 @@ function serializeState() {
 
 export default function FileMenu() {
   const [open, setOpen] = useState(false)
-  const ref = useRef<HTMLDivElement>(null)
+  const [dropdownPos, setDropdownPos] = useState({ top: 0, left: 0 })
+  const buttonRef = useRef<HTMLButtonElement>(null)
+  const dropdownRef = useRef<HTMLDivElement>(null)
   const currentFilePath = useEditorStore(s => s.currentFilePath)
   const setCurrentFilePath = useEditorStore(s => s.setCurrentFilePath)
   const loadState = useEditorStore(s => s.loadState)
 
+  const openMenu = () => {
+    if (buttonRef.current) {
+      const rect = buttonRef.current.getBoundingClientRect()
+      setDropdownPos({ top: rect.bottom + 2, left: rect.left })
+    }
+    setOpen(v => !v)
+  }
+
   useEffect(() => {
     const handler = (e: MouseEvent) => {
-      if (ref.current && !ref.current.contains(e.target as Node)) setOpen(false)
+      if (
+        dropdownRef.current && !dropdownRef.current.contains(e.target as Node) &&
+        buttonRef.current && !buttonRef.current.contains(e.target as Node)
+      ) {
+        setOpen(false)
+      }
     }
     document.addEventListener('mousedown', handler)
     return () => document.removeEventListener('mousedown', handler)
@@ -75,17 +90,26 @@ export default function FileMenu() {
     : 'Untitled'
 
   return (
-    <div ref={ref} className="relative">
+    <div className="flex items-center gap-1">
       <button
-        onClick={() => setOpen(v => !v)}
+        ref={buttonRef}
+        onClick={openMenu}
         className="flex items-center gap-1 px-2 py-0.5 rounded text-xs text-editor-text hover:bg-editor-hover transition-colors"
       >
         File
         <ChevronDown size={10} className="text-editor-muted" />
       </button>
 
+      <span className="text-[10px] text-editor-muted max-w-32 truncate hidden sm:inline" title={currentFilePath ?? ''}>
+        {filename}
+      </span>
+
       {open && (
-        <div className="absolute top-full left-0 mt-0.5 w-48 bg-editor-panel border border-editor-border rounded shadow-xl z-[200] py-1 text-xs">
+        <div
+          ref={dropdownRef}
+          style={{ top: dropdownPos.top, left: dropdownPos.left }}
+          className="fixed w-48 bg-editor-panel border border-editor-border rounded shadow-xl z-[999] py-1 text-xs"
+        >
           <button
             onClick={handleNew}
             className="flex items-center gap-2 w-full px-3 py-1.5 hover:bg-editor-hover text-editor-text text-left"
@@ -108,8 +132,7 @@ export default function FileMenu() {
             onClick={handleSave}
             className="flex items-center gap-2 w-full px-3 py-1.5 hover:bg-editor-hover text-editor-text text-left"
           >
-            <Save size={11} className="text-editor-muted" />
-            Save
+            <Save size={11} className="text-editor-muted" /> Save
             <span className="ml-auto text-editor-muted text-[10px]">⌘S</span>
           </button>
 
@@ -122,11 +145,6 @@ export default function FileMenu() {
           </button>
         </div>
       )}
-
-      {/* Current file indicator */}
-      <span className="text-[10px] text-editor-muted ml-1 max-w-32 truncate hidden sm:inline" title={currentFilePath ?? ''}>
-        {filename}
-      </span>
     </div>
   )
 }
