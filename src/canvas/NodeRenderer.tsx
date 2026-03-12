@@ -9,10 +9,11 @@ import SelectionOverlay from './SelectionOverlay'
 
 interface Props {
   node: ComponentNode
+  index?: number
   isRoot?: boolean
 }
 
-export default function NodeRenderer({ node, isRoot = false }: Props) {
+export default function NodeRenderer({ node, index = 0, isRoot = false }: Props) {
   const dataSourceStates = useEditorStore(s => s.dataSourceStates)
   const previewMode = useEditorStore(s => s.previewMode)
 
@@ -27,7 +28,7 @@ export default function NodeRenderer({ node, isRoot = false }: Props) {
   })
 
   const resolvedProps = useMemo(() => {
-    const ctx = buildContext(node, dataSourceStates)
+    const ctx = buildContext(node, dataSourceStates, index)
     const resolved: Record<string, unknown> = { ...node.props }
     for (const [propName, binding] of Object.entries(node.bindings)) {
       try {
@@ -94,7 +95,7 @@ function RenderedNode({
 
   const children = node.children.length > 0 ? (
     <React.Fragment>
-      {node.children.map(child =>
+      {node.children.map((child, i) =>
         layout === 'absolute' ? (
           <div
             key={child.id}
@@ -106,10 +107,10 @@ function RenderedNode({
               height: child.style?.height,
             }}
           >
-            <NodeRenderer node={child} />
+            <NodeRenderer node={child} index={i} />
           </div>
         ) : (
-          <NodeRenderer key={child.id} node={child} />
+          <NodeRenderer key={child.id} node={child} index={i} />
         )
       )}
     </React.Fragment>
