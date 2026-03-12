@@ -9,11 +9,12 @@ import SelectionOverlay from './SelectionOverlay'
 
 interface Props {
   node: ComponentNode
+  parent?: ComponentNode | null
   index?: number
   isRoot?: boolean
 }
 
-export default function NodeRenderer({ node, index = 0, isRoot = false }: Props) {
+export default function NodeRenderer({ node, parent = null, index = 0, isRoot = false }: Props) {
   const dataSourceStates = useEditorStore(s => s.dataSourceStates)
   const previewMode = useEditorStore(s => s.previewMode)
 
@@ -28,7 +29,7 @@ export default function NodeRenderer({ node, index = 0, isRoot = false }: Props)
   })
 
   const resolvedProps = useMemo(() => {
-    const ctx = buildContext(node, dataSourceStates, index)
+    const ctx = buildContext(node, dataSourceStates, index, parent)
     const resolved: Record<string, unknown> = { ...node.props }
     for (const [propName, binding] of Object.entries(node.bindings)) {
       try {
@@ -38,7 +39,7 @@ export default function NodeRenderer({ node, index = 0, isRoot = false }: Props)
       }
     }
     return resolved
-  }, [node, dataSourceStates])
+  }, [node, dataSourceStates, index, parent])
 
   if (!def) {
     return (
@@ -107,10 +108,10 @@ function RenderedNode({
               height: child.style?.height,
             }}
           >
-            <NodeRenderer node={child} index={i} />
+            <NodeRenderer node={child} parent={node} index={i} />
           </div>
         ) : (
-          <NodeRenderer key={child.id} node={child} index={i} />
+          <NodeRenderer key={child.id} node={child} parent={node} index={i} />
         )
       )}
     </React.Fragment>
