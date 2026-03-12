@@ -1,4 +1,5 @@
 import React, { useMemo } from 'react'
+import { useDroppable } from '@dnd-kit/core'
 import type { ComponentNode } from '@/types/component-node'
 import { getComponent } from '@/registry'
 import { evaluateBinding } from '@/engine/binding-evaluator'
@@ -16,6 +17,14 @@ export default function NodeRenderer({ node, isRoot = false }: Props) {
   const previewMode = useEditorStore(s => s.previewMode)
 
   const def = getComponent(node.type)
+  const acceptsChildren = def?.acceptsChildren ?? false
+
+  // Always call useDroppable — apply ref only when acceptsChildren is true
+  const { setNodeRef: setDropRef, isOver } = useDroppable({
+    id: `container:${node.id}`,
+    data: { kind: 'container', nodeId: node.id },
+    disabled: !acceptsChildren || previewMode,
+  })
 
   const resolvedProps = useMemo(() => {
     const ctx = buildContext(node, dataSourceStates)
@@ -42,12 +51,20 @@ export default function NodeRenderer({ node, isRoot = false }: Props) {
     if (previewMode) return null
     return (
       <div className="opacity-30">
-        <RenderedNode node={node} def={def} resolvedProps={resolvedProps} />
+        <RenderedNode node={node} def={def} resolvedProps={resolvedProps} dropRef={null} isOver={false} />
       </div>
     )
   }
 
-  const content = <RenderedNode node={node} def={def} resolvedProps={resolvedProps} />
+  const content = (
+    <RenderedNode
+      node={node}
+      def={def}
+      resolvedProps={resolvedProps}
+      dropRef={acceptsChildren ? setDropRef : null}
+      isOver={isOver && !previewMode}
+    />
+  )
 
   if (previewMode) return content
 
@@ -62,23 +79,45 @@ function RenderedNode({
   node,
   def,
   resolvedProps,
+  dropRef,
+  isOver,
 }: {
   node: ComponentNode
   def: ReturnType<typeof getComponent>
   resolvedProps: Record<string, unknown>
+  dropRef: ((el: HTMLElement | null) => void) | null
+  isOver: boolean
 }) {
   if (!def) return null
 
+  const layout = def?.childLayout?.(resolvedProps) ?? 'flow'
+
   const children = node.children.length > 0 ? (
     <React.Fragment>
-      {node.children.map(child => (
-        <NodeRenderer key={child.id} node={child} />
-      ))}
+      {node.children.map(child =>
+        layout === 'absolute' ? (
+          <div
+            key={child.id}
+            style={{
+              position: 'absolute',
+              left: child.style?.x ?? 0,
+              top: child.style?.y ?? 0,
+              width: child.style?.width,
+              height: child.style?.height,
+            }}
+          >
+            <NodeRenderer node={child} />
+          </div>
+        ) : (
+          <NodeRenderer key={child.id} node={child} />
+        )
+      )}
     </React.Fragment>
   ) : undefined
 
+  let rendered: React.ReactNode
   try {
-    return (
+    rendered = (
       <def.render
         node={node}
         resolvedProps={resolvedProps}
@@ -86,10 +125,31 @@ function RenderedNode({
       />
     )
   } catch (e) {
-    return (
+    rendered = (
       <div className="border border-dashed border-red-500 p-2 text-red-400 text-xs rounded">
         Render error: {e instanceof Error ? e.message : String(e)}
       </div>
     )
   }
+
+  // Wrap with droppable ref + over-highlight for container nodes
+  if (dropRef) {
+    return (
+      <div
+        ref={dropRef}
+        data-node-id={node.id}
+        style={{
+          position: 'relative',
+          outline: isOver ? '2px dashed #3b82f6' : undefined,
+          outlineOffset: '-2px',
+          background: isOver ? 'rgba(59,130,246,0.06)' : undefined,
+          borderRadius: 4,
+        }}
+      >
+        {rendered}
+      </div>
+    )
+  }
+
+  return <>{rendered}</>
 }

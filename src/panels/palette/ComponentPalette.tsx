@@ -8,8 +8,10 @@ export default function ComponentPalette() {
   const allComponents = getAllComponents()
 
   const filtered = allComponents.filter(def =>
-    def.label.toLowerCase().includes(search.toLowerCase()) ||
-    (def.category ?? '').toLowerCase().includes(search.toLowerCase())
+    !def.hidden && (
+      def.label.toLowerCase().includes(search.toLowerCase()) ||
+      (def.category ?? '').toLowerCase().includes(search.toLowerCase())
+    )
   )
 
   const byCategory = filtered.reduce<Record<string, typeof filtered>>((acc, def) => {

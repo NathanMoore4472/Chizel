@@ -22,8 +22,34 @@ export interface TreeSlice {
   duplicateNode: (id: string) => void
 }
 
+const ROOT_FRAME_ID = 'root-frame'
+
+export { ROOT_FRAME_ID }
+
+const initialTree: ComponentNode[] = [
+  {
+    id: ROOT_FRAME_ID,
+    type: 'Frame',
+    label: 'Frame',
+    props: {
+      layout: 'absolute',
+      direction: 'column',
+      gap: 16,
+      padding: 24,
+      background: '#1e1e1e',
+      align: 'flex-start',
+      justify: 'flex-start',
+    },
+    bindings: {},
+    children: [],
+    parentId: null,
+    locked: false,
+    visible: true,
+  },
+]
+
 export const createTreeSlice: StateCreator<EditorState, [['zustand/immer', never]], [], TreeSlice> = (set, get) => ({
-  tree: [],
+  tree: initialTree,
 
   addNode: (node, parentId, x, y) => {
     get().snapshot()

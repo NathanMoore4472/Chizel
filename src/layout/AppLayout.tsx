@@ -4,20 +4,37 @@ import {
   DragOverlay,
   PointerSensor,
   KeyboardSensor,
+  pointerWithin,
   useSensor,
   useSensors,
   type DragEndEvent,
   type DragStartEvent,
+  type CollisionDetection,
 } from '@dnd-kit/core'
 import { sortableKeyboardCoordinates } from '@dnd-kit/sortable'
 import { useEditorStore } from '@/store'
+import { ROOT_FRAME_ID } from '@/store/slices/tree.slice'
 import { generateId } from '@/utils/id'
 import { getComponent } from '@/registry'
+import { findNode } from '@/utils/tree-ops'
 import Canvas from '@/canvas/Canvas'
 import LeftSidebar from './LeftSidebar'
 import RightSidebar from './RightSidebar'
 import ResizeHandle from './ResizeHandle'
 import type { ComponentNode } from '@/types/component-node'
+
+// Pick the smallest (innermost) droppable container the pointer is within.
+// Falls back to the first result if areas can't be determined.
+const innermostContainer: CollisionDetection = (args) => {
+  const collisions = pointerWithin(args)
+  if (collisions.length <= 1) return collisions
+  return collisions.sort((a, b) => {
+    const ra = args.droppableRects.get(a.id)
+    const rb = args.droppableRects.get(b.id)
+    if (!ra || !rb) return 0
+    return ra.width * ra.height - rb.width * rb.height
+  }).slice(0, 1)
+}
 
 export default function AppLayout() {
   const [leftWidth, setLeftWidth] = useState(220)
@@ -45,30 +62,36 @@ export default function AppLayout() {
     const { active, over, delta } = event
     const activeData = active.data.current
 
-    // Palette → Canvas
-    // Don't require over.id === 'canvas-root' — over can be null if the droppable
-    // didn't get hit, but we still want to place the node wherever the pointer landed.
+    // Palette → container (Frame or any acceptsChildren node)
     if (activeData?.kind === 'palette') {
-      // Only ignore drops that land on the tree panel
       if (over?.data.current?.kind === 'tree') return
 
       const def = getComponent(activeData.type)
       if (!def) return
 
-      // activatorEvent = mousedown position; delta = total movement since then.
-      // Together they give us the actual pointer position at drop time.
+      // Resolve which container to drop into
+      const overData = over?.data.current
+      const targetId = overData?.kind === 'container' ? overData.nodeId : ROOT_FRAME_ID
+
+      // Get the target container's element for position calculation
       const activatorEvent = event.activatorEvent as MouseEvent
       const dropClientX = activatorEvent.clientX + delta.x
       const dropClientY = activatorEvent.clientY + delta.y
 
-      // Convert from client coords to canvas-relative coords
-      const canvasEl = document.getElementById('canvas-scroll-container')
-      const canvasRect = canvasEl?.getBoundingClientRect()
-      const scrollLeft = canvasEl?.scrollLeft ?? 0
-      const scrollTop = canvasEl?.scrollTop ?? 0
+      // Find container element: containers register with data-node-id
+      const containerEl = document.querySelector(`[data-node-id="${targetId}"]`) as HTMLElement | null
+      const containerRect = containerEl?.getBoundingClientRect()
+      const scrollLeft = containerEl?.scrollLeft ?? 0
+      const scrollTop = containerEl?.scrollTop ?? 0
 
-      const x = Math.max(0, dropClientX - (canvasRect?.left ?? 0) + scrollLeft)
-      const y = Math.max(0, dropClientY - (canvasRect?.top ?? 0) + scrollTop)
+      const x = Math.max(0, dropClientX - (containerRect?.left ?? 0) + scrollLeft)
+      const y = Math.max(0, dropClientY - (containerRect?.top ?? 0) + scrollTop)
+
+      // Check if the target container uses absolute layout
+      const tree = useEditorStore.getState().tree
+      const targetNode = findNode(tree, targetId)
+      const targetDef = getComponent(targetNode?.type ?? '')
+      const isAbsolute = targetDef?.childLayout?.(targetNode?.props ?? {}) === 'absolute'
 
       const newNode: ComponentNode = {
         id: generateId(),
@@ -76,12 +99,12 @@ export default function AppLayout() {
         props: { ...def.defaultProps },
         bindings: {},
         children: [],
-        parentId: null,
+        parentId: targetId,
         locked: false,
         visible: true,
-        style: { x, y },
+        style: isAbsolute ? { x, y } : undefined,
       }
-      addNode(newNode, null)
+      addNode(newNode, targetId)
       return
     }
 
@@ -108,7 +131,7 @@ export default function AppLayout() {
   }, [undo, redo])
 
   return (
-    <DndContext sensors={sensors} onDragStart={handleDragStart} onDragEnd={handleDragEnd}>
+    <DndContext sensors={sensors} collisionDetection={innermostContainer} onDragStart={handleDragStart} onDragEnd={handleDragEnd}>
       <div className="flex h-screen w-screen overflow-hidden bg-editor-bg">
         {/* Header */}
         <div className="absolute top-0 left-0 right-0 h-8 bg-editor-panel border-b border-editor-border flex items-center px-3 z-50">

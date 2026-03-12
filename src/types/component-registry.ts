@@ -63,5 +63,10 @@ export interface ComponentDefinition {
   propSchema: Record<string, PropSchema>
   defaultProps: Record<string, unknown>
   acceptsChildren?: boolean
+  /** If provided, NodeRenderer wraps each child in an absolutely-positioned div
+   *  using the child's style.x / style.y when this returns 'absolute'. */
+  childLayout?: (resolvedProps: Record<string, unknown>) => 'flow' | 'absolute'
+  /** Hide from the component palette (e.g. Frame root) */
+  hidden?: boolean
   render: ComponentType<{ node: ComponentNode; resolvedProps: Record<string, unknown>; children?: React.ReactNode }>
 }

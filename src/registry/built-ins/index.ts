@@ -1,4 +1,5 @@
 // Static imports so all components are registered synchronously at module load time
+import './Frame'
 import './Button'
 import './Text'
 import './Label'
