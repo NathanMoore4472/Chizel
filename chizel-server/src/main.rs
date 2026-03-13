@@ -29,7 +29,8 @@ fn resolve_connection_url(url: &str) -> String {
         return url.to_string();
     };
     let abs = cwd.join(path_part);
-    format!("sqlite:///{}", abs.display())
+    // abs already starts with / on Unix, so sqlite:// + /path = sqlite:///path (correct)
+    format!("sqlite://{}", abs.display())
 }
 
 // ─── Pool cache ───────────────────────────────────────────────────────────────
@@ -116,6 +117,7 @@ async fn query(
 ) -> QueryResult {
     let mut guard = pools.lock().await;
     let url = resolve_connection_url(&req.connection_url);
+    println!("[chizel-server] query: raw={:?} resolved={:?}", req.connection_url, url);
 
     if url.starts_with("sqlite") {
         let pool = match guard.get(&url) {
