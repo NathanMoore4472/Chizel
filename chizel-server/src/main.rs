@@ -13,6 +13,25 @@ use std::sync::Arc;
 use tokio::sync::Mutex;
 use tower_http::cors::{Any, CorsLayer};
 
+// ─── URL resolution ───────────────────────────────────────────────────────────
+
+/// Normalises a SQLite connection URL with a relative path against the process CWD.
+/// `sqlite://./assets/dev.db` → `sqlite:///abs/path/to/assets/dev.db`
+fn resolve_connection_url(url: &str) -> String {
+    if !url.starts_with("sqlite://") {
+        return url.to_string();
+    }
+    let path_part = &url["sqlite://".len()..];
+    if !path_part.starts_with('.') {
+        return url.to_string();
+    }
+    let Ok(cwd) = std::env::current_dir() else {
+        return url.to_string();
+    };
+    let abs = cwd.join(path_part);
+    format!("sqlite:///{}", abs.display())
+}
+
 // ─── Pool cache ───────────────────────────────────────────────────────────────
 
 enum Pool {
@@ -96,14 +115,15 @@ async fn query(
     Json(req): Json<QueryRequest>,
 ) -> QueryResult {
     let mut guard = pools.lock().await;
+    let url = resolve_connection_url(&req.connection_url);
 
-    if req.connection_url.starts_with("sqlite") {
-        let pool = match guard.get(&req.connection_url) {
+    if url.starts_with("sqlite") {
+        let pool = match guard.get(&url) {
             Some(Pool::Sqlite(p)) => p.clone(),
             _ => {
-                let p = sqlx::SqlitePool::connect(&req.connection_url).await
+                let p = sqlx::SqlitePool::connect(&url).await
                     .map_err(|e| err(format!("Connection failed: {e}")))?;
-                guard.insert(req.connection_url.clone(), Pool::Sqlite(p.clone()));
+                guard.insert(url.clone(), Pool::Sqlite(p.clone()));
                 p
             }
         };
@@ -111,12 +131,12 @@ async fn query(
             .map_err(|e| err(format!("Query failed: {e}")))?;
         Ok(Json(rows.iter().map(sqlite_row_to_json).collect()))
     } else {
-        let pool = match guard.get(&req.connection_url) {
+        let pool = match guard.get(&url) {
             Some(Pool::Postgres(p)) => p.clone(),
             _ => {
-                let p = sqlx::PgPool::connect(&req.connection_url).await
+                let p = sqlx::PgPool::connect(&url).await
                     .map_err(|e| err(format!("Connection failed: {e}")))?;
-                guard.insert(req.connection_url.clone(), Pool::Postgres(p.clone()));
+                guard.insert(url.clone(), Pool::Postgres(p.clone()));
                 p
             }
         };
@@ -129,11 +149,12 @@ async fn query(
 async fn test_connection(
     Json(req): Json<QueryRequest>,
 ) -> Result<Json<serde_json::Value>, (StatusCode, Json<ErrorBody>)> {
-    if req.connection_url.starts_with("sqlite") {
-        sqlx::SqlitePool::connect(&req.connection_url).await
+    let url = resolve_connection_url(&req.connection_url);
+    if url.starts_with("sqlite") {
+        sqlx::SqlitePool::connect(&url).await
             .map_err(|e| err(format!("Connection failed: {e}")))?;
     } else {
-        sqlx::PgPool::connect(&req.connection_url).await
+        sqlx::PgPool::connect(&url).await
             .map_err(|e| err(format!("Connection failed: {e}")))?;
     }
     Ok(Json(serde_json::json!({ "ok": true })))
