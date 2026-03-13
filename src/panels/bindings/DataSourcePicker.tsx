@@ -1,6 +1,7 @@
 import React, { useState } from 'react'
 import { useEditorStore } from '@/store'
 import type { DataSourceBinding, DatabaseDataSource, RestDataSource } from '@/types'
+
 import { Plus, Trash2, Database, Globe, CheckCircle, XCircle, Loader } from 'lucide-react'
 import { testDatabaseConnection, closeDatabaseConnection } from '@/engine/data-source-runner'
 import { isTauri } from '@/utils/file-ops'
@@ -29,6 +30,10 @@ export default function DataSourcePicker({ propName, nodeId: _nodeId, currentBin
   // REST fields
   const [newSourceName, setNewSourceName] = useState('')
   const [newSourceUrl, setNewSourceUrl] = useState('')
+  const [newSourceMethod, setNewSourceMethod] = useState<RestDataSource['method']>('GET')
+  const [newSourceHeaders, setNewSourceHeaders] = useState('')
+  const [newSourceBody, setNewSourceBody] = useState('')
+  const [newSourcePoll, setNewSourcePoll] = useState(0)
 
   // Database fields
   const [dbName, setDbName] = useState('')
@@ -45,17 +50,28 @@ export default function DataSourcePicker({ propName, nodeId: _nodeId, currentBin
 
   const handleAddRest = () => {
     if (!newSourceName.trim()) return
+    let headers: Record<string, string> | undefined
+    if (newSourceHeaders.trim()) {
+      try { headers = JSON.parse(newSourceHeaders) } catch { /* ignore malformed */ }
+    }
     addDataSource({
       kind: 'rest',
       name: newSourceName.trim(),
       url: newSourceUrl.trim(),
-      method: 'GET',
+      method: newSourceMethod,
+      headers,
+      body: newSourceBody.trim() || undefined,
+      pollInterval: newSourcePoll > 0 ? newSourcePoll : undefined,
       enabled: true,
     })
     setSelectedSource(newSourceName.trim())
     setShowNewSource(false)
     setNewSourceName('')
     setNewSourceUrl('')
+    setNewSourceMethod('GET')
+    setNewSourceHeaders('')
+    setNewSourceBody('')
+    setNewSourcePoll(0)
   }
 
   const handleAddDatabase = () => {
@@ -158,8 +174,45 @@ export default function DataSourcePicker({ propName, nodeId: _nodeId, currentBin
             <>
               <input placeholder="Name" value={newSourceName} onChange={e => setNewSourceName(e.target.value)}
                 className="w-full bg-editor-panel border border-editor-border rounded px-2 py-1 text-xs text-editor-text focus:outline-none focus:border-blue-500" />
-              <input placeholder="URL (https://api.example.com/data)" value={newSourceUrl} onChange={e => setNewSourceUrl(e.target.value)}
-                className="w-full bg-editor-panel border border-editor-border rounded px-2 py-1 text-xs text-editor-text focus:outline-none focus:border-blue-500" />
+
+              <div className="flex gap-1">
+                <select value={newSourceMethod} onChange={e => setNewSourceMethod(e.target.value as RestDataSource['method'])}
+                  className="bg-editor-panel border border-editor-border rounded px-2 py-1 text-xs text-editor-text focus:outline-none focus:border-blue-500">
+                  {(['GET','POST','PUT','PATCH','DELETE'] as const).map(m => (
+                    <option key={m} value={m}>{m}</option>
+                  ))}
+                </select>
+                <input placeholder="https://api.example.com/data" value={newSourceUrl} onChange={e => setNewSourceUrl(e.target.value)}
+                  spellCheck={false} autoCorrect="off"
+                  className="flex-1 bg-editor-panel border border-editor-border rounded px-2 py-1 text-xs text-editor-text font-mono focus:outline-none focus:border-blue-500" />
+              </div>
+
+              <div>
+                <div className="text-[10px] text-editor-muted mb-0.5">Headers (JSON)</div>
+                <textarea placeholder={'{"Authorization": "Bearer token"}'} value={newSourceHeaders}
+                  onChange={e => setNewSourceHeaders(e.target.value)}
+                  rows={2} spellCheck={false} autoCorrect="off"
+                  className="w-full bg-editor-panel border border-editor-border rounded px-2 py-1 text-xs text-editor-text font-mono resize-none focus:outline-none focus:border-blue-500" />
+              </div>
+
+              {newSourceMethod !== 'GET' && (
+                <div>
+                  <div className="text-[10px] text-editor-muted mb-0.5">Body (JSON)</div>
+                  <textarea placeholder={'{"key": "value"}'} value={newSourceBody}
+                    onChange={e => setNewSourceBody(e.target.value)}
+                    rows={3} spellCheck={false} autoCorrect="off"
+                    className="w-full bg-editor-panel border border-editor-border rounded px-2 py-1 text-xs text-editor-text font-mono resize-none focus:outline-none focus:border-blue-500" />
+                </div>
+              )}
+
+              <div className="flex gap-2 items-center">
+                <label className="text-[10px] text-editor-muted">Poll (ms)</label>
+                <input type="number" min={0} step={1000} value={newSourcePoll}
+                  onChange={e => setNewSourcePoll(Number(e.target.value))}
+                  placeholder="0 = once"
+                  className="w-24 bg-editor-panel border border-editor-border rounded px-2 py-0.5 text-xs text-editor-text font-mono focus:outline-none focus:border-blue-500" />
+              </div>
+
               <button onClick={handleAddRest}
                 className="w-full py-1 rounded bg-blue-600 hover:bg-blue-700 text-white text-xs font-medium">
                 Add REST Source
