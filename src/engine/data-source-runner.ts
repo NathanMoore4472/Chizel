@@ -1,5 +1,21 @@
 import type { RestDataSource, DatabaseDataSource } from '@/types/data-source'
 import { isTauri } from '@/utils/file-ops'
+import { useEditorStore } from '@/store'
+
+/**
+ * Resolves a SQLite connection URL with a relative path (e.g. sqlite://./assets/dev.db)
+ * to an absolute path using the current project file's directory.
+ */
+async function resolveConnectionUrl(url: string): Promise<string> {
+  if (!url.startsWith('sqlite://')) return url
+  const pathPart = url.slice('sqlite://'.length)
+  if (!pathPart.startsWith('.')) return url
+  const { dirname, resolve } = await import('@tauri-apps/api/path')
+  const currentFilePath = useEditorStore.getState().currentFilePath
+  if (!currentFilePath) return url
+  const absPath = await resolve(await dirname(currentFilePath), pathPart)
+  return 'sqlite://' + absPath
+}
 
 export interface RunnerCallbacks {
   onData: (data: unknown) => void
@@ -52,7 +68,7 @@ export async function fetchDatabaseDataSource(
   try {
     const { invoke } = await import('@tauri-apps/api/core')
     const rows = await invoke<Record<string, unknown>[]>('query_database', {
-      connectionUrl: source.connectionUrl,
+      connectionUrl: await resolveConnectionUrl(source.connectionUrl),
       query: source.query,
     })
     callbacks.onData(rows)
@@ -68,7 +84,7 @@ export async function testDatabaseConnection(connectionUrl: string): Promise<str
   if (!isTauri()) return 'Database connections require the desktop app'
   try {
     const { invoke } = await import('@tauri-apps/api/core')
-    return await invoke<string>('test_database_connection', { connectionUrl })
+    return await invoke<string>('test_database_connection', { connectionUrl: await resolveConnectionUrl(connectionUrl) })
   } catch (e) {
     throw new Error(e instanceof Error ? e.message : String(e))
   }

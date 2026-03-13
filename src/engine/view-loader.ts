@@ -1,6 +1,7 @@
 import type { ComponentNode } from '@/types/component-node'
 import type { DataSource } from '@/types/data-source'
 import { isTauri } from '@/utils/file-ops'
+import { useEditorStore } from '@/store'
 
 export interface ViewFile {
   tree: ComponentNode[]
@@ -19,7 +20,15 @@ export async function loadViewFile(src: string): Promise<ViewFile> {
     let text: string
     if (isTauri()) {
       const { readTextFile } = await import('@tauri-apps/plugin-fs')
-      text = await readTextFile(src)
+      let resolvedSrc = src
+      if (src.startsWith('.')) {
+        const { dirname, resolve } = await import('@tauri-apps/api/path')
+        const currentFilePath = useEditorStore.getState().currentFilePath
+        if (currentFilePath) {
+          resolvedSrc = await resolve(await dirname(currentFilePath), src)
+        }
+      }
+      text = await readTextFile(resolvedSrc)
     } else {
       // Browser fallback — useful if src is a URL or data URI
       const res = await fetch(src)
