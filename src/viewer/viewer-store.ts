@@ -2,6 +2,7 @@ import { create } from 'zustand'
 import { immer } from 'zustand/middleware/immer'
 import type { ComponentNode } from '@/types/component-node'
 import type { DataSource, DataSourceState } from '@/types/data-source'
+import { updateNodeById } from '@/utils/tree-ops'
 
 export interface ViewerState {
   tree: ComponentNode[]
@@ -12,6 +13,8 @@ export interface ViewerState {
   zoom: number
   setDataSourceState: (name: string, partial: Partial<DataSourceState>) => void
   selectNode: (id: string | null) => void
+  /** Required by ctx.actions.setProps in event handlers */
+  updateNodeProps: (id: string, props: Record<string, unknown>) => void
 }
 
 export const useViewerStore = create<ViewerState>()(
@@ -31,5 +34,13 @@ export const useViewerStore = create<ViewerState>()(
       })
     },
     selectNode: () => {},
+    updateNodeProps: (id, props) => {
+      set(state => {
+        state.tree = updateNodeById(state.tree, id, node => ({
+          ...node,
+          props: { ...node.props, ...props },
+        }))
+      })
+    },
   }))
 )
