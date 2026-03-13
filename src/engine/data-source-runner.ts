@@ -52,26 +52,37 @@ export async function fetchRestDataSource(
 
 // ─── Database ────────────────────────────────────────────────────────────────
 
+const CHIZEL_SERVER = 'http://127.0.0.1:7878'
+
 export async function fetchDatabaseDataSource(
   source: DatabaseDataSource,
   callbacks: RunnerCallbacks
 ): Promise<void> {
-  if (!isTauri()) {
-    callbacks.onError('Database sources require the desktop app (Tauri)')
-    return
-  }
   if (!source.connectionUrl.trim() || !source.query.trim()) {
     callbacks.onError('Connection URL and query are required')
     return
   }
   callbacks.onLoading(true)
   try {
-    const { invoke } = await import('@tauri-apps/api/core')
-    const rows = await invoke<Record<string, unknown>[]>('query_database', {
-      connectionUrl: await resolveConnectionUrl(source.connectionUrl),
-      query: source.query,
-    })
-    callbacks.onData(rows)
+    if (isTauri()) {
+      const { invoke } = await import('@tauri-apps/api/core')
+      const rows = await invoke<Record<string, unknown>[]>('query_database', {
+        connectionUrl: await resolveConnectionUrl(source.connectionUrl),
+        query: source.query,
+      })
+      callbacks.onData(rows)
+    } else {
+      const res = await fetch(`${CHIZEL_SERVER}/query`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ connection_url: source.connectionUrl, query: source.query }),
+      })
+      if (!res.ok) {
+        const body = await res.json().catch(() => ({}))
+        throw new Error(body.error ?? `HTTP ${res.status}`)
+      }
+      callbacks.onData(await res.json())
+    }
     callbacks.onError('')
   } catch (e) {
     callbacks.onError(e instanceof Error ? e.message : String(e))
@@ -81,12 +92,24 @@ export async function fetchDatabaseDataSource(
 }
 
 export async function testDatabaseConnection(connectionUrl: string): Promise<string> {
-  if (!isTauri()) return 'Database connections require the desktop app'
-  try {
-    const { invoke } = await import('@tauri-apps/api/core')
-    return await invoke<string>('test_database_connection', { connectionUrl: await resolveConnectionUrl(connectionUrl) })
-  } catch (e) {
-    throw new Error(e instanceof Error ? e.message : String(e))
+  if (isTauri()) {
+    try {
+      const { invoke } = await import('@tauri-apps/api/core')
+      return await invoke<string>('test_database_connection', { connectionUrl: await resolveConnectionUrl(connectionUrl) })
+    } catch (e) {
+      throw new Error(e instanceof Error ? e.message : String(e))
+    }
+  } else {
+    const res = await fetch(`${CHIZEL_SERVER}/test`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ connection_url: connectionUrl, query: '' }),
+    })
+    if (!res.ok) {
+      const body = await res.json().catch(() => ({}))
+      throw new Error(body.error ?? `HTTP ${res.status}`)
+    }
+    return 'Connected successfully'
   }
 }
 
