@@ -1,7 +1,8 @@
 import React, { useState, useRef, useEffect } from 'react'
 import { useEditorStore } from '@/store'
 import { isTauri, saveProjectFile, openProjectFile } from '@/utils/file-ops'
-import { FolderOpen, Save, SaveAll, FilePlus, ChevronDown } from 'lucide-react'
+import { exportProject } from '@/utils/export-project'
+import { FolderOpen, Save, SaveAll, FilePlus, ChevronDown, Download } from 'lucide-react'
 import { ROOT_FRAME_ID } from '@/store/slices/tree.slice'
 
 function serializeState() {
@@ -87,6 +88,19 @@ export default function FileMenu() {
     if (path) setCurrentFilePath(path)
   }
 
+  const handleExport = async () => {
+    setOpen(false)
+    const { tree, dataSources } = useEditorStore.getState()
+    const title = currentFilePath ? currentFilePath.split('/').pop()?.replace('.chizel', '') : 'Chizel View'
+    try {
+      await exportProject({ tree, dataSources }, { title })
+    } catch (e) {
+      // Show error - for now just console.log
+      console.error('Export failed:', e)
+      alert(e instanceof Error ? e.message : String(e))
+    }
+  }
+
   const filename = currentFilePath
     ? currentFilePath.split('/').pop()
     : 'Untitled'
@@ -144,6 +158,15 @@ export default function FileMenu() {
           >
             <SaveAll size={11} className="text-editor-muted" /> Save As…
             <span className="ml-auto text-editor-muted text-[10px]">⇧⌘S</span>
+          </button>
+
+          <div className="my-1 border-t border-editor-border" />
+
+          <button
+            onClick={handleExport}
+            className="flex items-center gap-2 w-full px-3 py-1.5 hover:bg-editor-hover text-editor-text text-left"
+          >
+            <Download size={11} className="text-editor-muted" /> Export View…
           </button>
         </div>
       )}
