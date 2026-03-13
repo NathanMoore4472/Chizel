@@ -15,10 +15,13 @@ export async function fetchRestDataSource(
 ): Promise<void> {
   callbacks.onLoading(true)
   try {
+    const hasBody = !!source.body && source.method !== 'GET'
+    const headers: Record<string, string> = { ...source.headers }
+    if (hasBody) headers['Content-Type'] = 'application/json'
     const res = await fetch(source.url, {
       method: source.method,
-      headers: { 'Content-Type': 'application/json', ...source.headers },
-      body: source.body && source.method !== 'GET' ? source.body : undefined,
+      headers,
+      body: hasBody ? source.body : undefined,
     })
     if (!res.ok) throw new Error(`HTTP ${res.status}: ${res.statusText}`)
     const data = await res.json()
