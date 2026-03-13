@@ -38,6 +38,7 @@ export default function ViewerApp() {
     })
   }, [])
 
+  console.log('[Chizel:viewer] ViewerApp render, tree length:', tree.length, 'nodes')
   const rootFrame = tree.find(n => n.type === 'Frame')
 
   return (

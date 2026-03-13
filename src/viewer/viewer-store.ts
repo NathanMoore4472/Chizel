@@ -35,11 +35,14 @@ export const useViewerStore = create<ViewerState>()(
     },
     selectNode: () => {},
     updateNodeProps: (id, props) => {
+      console.log('[Chizel:viewer] updateNodeProps called', { id, props })
       set(state => {
+        const before = state.tree.find((n: any) => n.id === id)?.props
         state.tree = updateNodeById(state.tree, id, node => ({
           ...node,
           props: { ...node.props, ...props },
         }))
+        console.log('[Chizel:viewer] tree updated, node props before:', before, '→ patching with:', props)
       })
     },
   }))

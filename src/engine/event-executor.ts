@@ -10,6 +10,7 @@ function compileHandler(code: string): Function {
     compiledCache.set(code, fn)
     return fn
   } catch (e) {
+    console.error('[Chizel] Event handler compile error:', e)
     const errFn = () => console.error('[Chizel] Event handler compile error:', e)
     compiledCache.set(code, errFn)
     return errFn
@@ -23,10 +24,13 @@ export function buildEventHandlers(
   const handlers: Record<string, (e: Event) => void> = {}
   for (const [eventName, code] of Object.entries(events)) {
     if (!code.trim()) continue
+    console.log(`[Chizel] Building handler for "${eventName}", ctx.actions available:`, !!ctx.actions, 'updateNodeProps via actions:', typeof (ctx.actions as any)?.setProps)
     const fn = compileHandler(code)
     handlers[eventName] = (domEvent: Event) => {
+      console.log(`[Chizel] Event "${eventName}" fired`, { ctxParent: ctx.parent, ctxNodeId: ctx.node.id })
       try {
         fn(ctx, domEvent)
+        console.log(`[Chizel] Event "${eventName}" completed`)
       } catch (e) {
         console.error(`[Chizel] Event handler "${eventName}" error:`, e)
       }

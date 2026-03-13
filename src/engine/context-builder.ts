@@ -70,11 +70,17 @@ export function buildContext(
 
   const actions: CtxActions = {
     setProps(nodeIdOrPatch: string | Record<string, unknown>, patch?: Record<string, unknown>) {
+      console.log('[Chizel] ctx.actions.setProps called', { nodeIdOrPatch, patch, hasStoreActions: !!storeActions, updateNodePropsType: typeof storeActions?.updateNodeProps })
       if (!storeActions) {
-        console.warn('[Chizel] ctx.actions.setProps called outside of an event handler')
+        console.warn('[Chizel] ctx.actions.setProps: no storeActions — updateNodeProps is missing from the store')
+        return
+      }
+      if (typeof storeActions.updateNodeProps !== 'function') {
+        console.error('[Chizel] ctx.actions.setProps: updateNodeProps is not a function, got:', typeof storeActions.updateNodeProps)
         return
       }
       if (typeof nodeIdOrPatch === 'string' && patch) {
+        console.log('[Chizel] Calling updateNodeProps(', nodeIdOrPatch, ',', patch, ')')
         storeActions.updateNodeProps(nodeIdOrPatch, patch)
       } else if (typeof nodeIdOrPatch === 'object') {
         storeActions.updateNodeProps(node.id, nodeIdOrPatch)
