@@ -113,7 +113,7 @@ Drop components from the palette onto the canvas. Components can be nested insid
 | **Grid** | `columns`, `gap`, `padding`, `templateColumns` | CSS Grid |
 | **Card** | `title`, `padding`, `background`, `borderColor`, `borderRadius`, `shadow` | Bordered card with optional header |
 | **Spacer** | `size`, `flex` | Fixed-size or flex-grow empty space |
-| **EmbeddedView** | `src` | Embeds another `.chizel` file; see [Embedded Views](#embedded-views) |
+| **EmbeddedView** | `src` | Embeds another `.chizel` file; supports `./relative` paths; see [Embedded Views](#embedded-views) |
 | **FlexRepeater** | `viewPath`, `instances`, `direction`, `gap`, `wrap` | Repeats a view for each item in an array; see [FlexRepeater](#flexrepeater) |
 
 ---
@@ -188,9 +188,22 @@ ctx.env.url        // current window URL
 
 Click **⚡** on any prop → **Data Source** tab.
 
-1. Click **+** to add a REST data source (URL, method, optional polling interval)
+1. Click **+** to add a data source — **REST**, **Database**, or **Store** (local state)
 2. Select the source, enter a JSONPath (e.g. `$.results[0].name`)
-3. The value updates automatically after each fetch
+3. The value updates automatically after each fetch / poll
+
+**REST** — URL, HTTP method, optional headers/body, polling interval.
+
+**Database** — SQLite or PostgreSQL connection URL + SQL query. Requires the desktop app (Tauri) or `chizel-server` running alongside the viewer.
+
+```
+sqlite:///absolute/path/to/file.db
+sqlite://./assets/dev.db       ← relative to the open .chizel project file (Tauri)
+                                  or to the chizel-server working directory (viewer)
+postgres://user:pass@localhost/mydb
+```
+
+**Store** — local in-memory object with an optional initial value; no network calls.
 
 ---
 
@@ -287,6 +300,71 @@ Projects are saved as `.chizel` JSON files containing:
 
 ---
 
+## Exporting a View
+
+A built view can be exported as a standalone HTML bundle that runs without the editor.
+
+### Build the viewer bundle (one-time)
+
+```bash
+npx vite build --config vite.viewer.config.ts
+# output: dist-viewer/
+```
+
+### Export from the editor
+
+**File → Export View** writes a copy of `dist-viewer/` to a folder you choose, embedding the current tree and data sources as JSON inside the HTML.
+
+### Deploying / running the export
+
+Open `index.html` in any browser — no server required for views that use only REST data sources or expression bindings.
+
+For **database data sources**, run `chizel-server` alongside the HTML (see [chizel-server](#chizel-server)).
+
+---
+
+## chizel-server
+
+A standalone Rust HTTP server that proxies SQLite and PostgreSQL queries for the exported viewer. The viewer calls it automatically when not running inside Tauri.
+
+### Build
+
+```bash
+cargo build -p chizel-server --release
+# binary: target/release/chizel-server  (~5 MB, self-contained)
+```
+
+### Run
+
+Copy the binary to your export folder and run it from there:
+
+```
+my-export/
+├── index.html
+├── assets/
+│   ├── viewer-xxx.js
+│   └── dev.db          ← SQLite file served from here
+└── chizel-server       ← run this binary
+```
+
+```bash
+./chizel-server          # listens on http://127.0.0.1:7878
+PORT=9000 ./chizel-server  # custom port
+```
+
+The viewer automatically sends database queries to `http://127.0.0.1:7878`. Running the server from the same directory as the HTML means relative paths like `sqlite://./assets/dev.db` resolve correctly.
+
+### Endpoints
+
+| Method | Path | Body | Description |
+|---|---|---|---|
+| `POST` | `/query` | `{ "connection_url": "...", "query": "..." }` | Execute a query, returns row array |
+| `POST` | `/test` | `{ "connection_url": "..." }` | Test a connection |
+
+> **PostgreSQL** works the same way — just use a `postgres://` connection URL.
+
+---
+
 ## Desktop App (Tauri)
 
 The desktop app wraps the same Vite/React frontend in a native window using Tauri v2 (WebKit on macOS).
@@ -340,6 +418,9 @@ src/
 | Bindings | Evaluated at render time in `NodeRenderer`; `ctx.parent` triggers re-render when parent props change |
 | Events | Compiled at runtime; only execute in preview mode |
 | Embedded views | File loaded via Tauri `readTextFile` (browser: `fetch`); module-level cache invalidated on save |
+| Relative paths | `./relative` paths in EmbeddedView `src` and SQLite URLs are resolved against the open project file's directory in Tauri, and against the server CWD in chizel-server |
+| Viewer store | Separate `viewer-store.ts` + `store-shim.ts`; `@/store` alias overrides in `vite.viewer.config.ts` — **the more-specific alias must come first** to prevent Vite's `@` alias matching before `@/store` |
+| DB in viewer | Viewer calls `chizel-server` HTTP API (`localhost:7878`); Tauri uses `invoke` directly |
 
 ---
 
@@ -354,3 +435,4 @@ src/
 - **Tauri v2** — desktop wrapper (optional)
 - **Lucide React** — icons
 - **Radix UI** — context menus, accessible primitives
+- **axum + sqlx** — chizel-server HTTP backend (Rust, standalone binary)
