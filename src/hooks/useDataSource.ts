@@ -1,7 +1,6 @@
 import { useEffect } from 'react'
 import { useEditorStore } from '@/store'
 import { startPolling, stopPolling } from '@/engine/data-source-runner'
-import type { RestDataSource } from '@/types/data-source'
 
 export function useDataSource(sourceName: string) {
   const dataSources = useEditorStore(s => s.dataSources)
@@ -12,9 +11,11 @@ export function useDataSource(sourceName: string) {
   const state = dataSourceStates[sourceName]
 
   useEffect(() => {
-    if (!source || source.kind !== 'rest' || !source.enabled) return
-    const restSource = source as RestDataSource
-    startPolling(restSource, {
+    if (!source) return
+    if (source.kind !== 'rest' && source.kind !== 'database') return
+    if (!source.enabled) return
+
+    startPolling(source, {
       onData: (data) => setDataSourceState(sourceName, { data, lastFetched: Date.now() }),
       onError: (error) => setDataSourceState(sourceName, { error }),
       onLoading: (loading) => setDataSourceState(sourceName, { loading }),

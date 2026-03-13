@@ -15,7 +15,16 @@ export interface StoreDataSource {
   initialData: unknown
 }
 
-export type DataSource = RestDataSource | StoreDataSource
+export interface DatabaseDataSource {
+  kind: 'database'
+  name: string
+  connectionUrl: string
+  query: string
+  pollInterval?: number
+  enabled: boolean
+}
+
+export type DataSource = RestDataSource | StoreDataSource | DatabaseDataSource
 
 export interface DataSourceState {
   data: unknown
