@@ -1,5 +1,7 @@
 import { isTauri } from './file-ops'
 
+declare const __APP_ROOT__: string
+
 export interface ExportOptions {
   title?: string
 }
@@ -25,8 +27,8 @@ export async function exportProject(
     // Read the built viewer index.html
     let html: string
     try {
-      // Try to read from dist-viewer (must have run npm run build:viewer first)
-      html = await readTextFile('./dist-viewer/index.html')
+      // __APP_ROOT__ is the absolute project directory, injected by Vite at build time
+      html = await readTextFile(`${__APP_ROOT__}/dist-viewer/viewer.html`)
     } catch {
       throw new Error('Viewer not built. Run "npm run build:viewer" first.')
     }
