@@ -5,6 +5,7 @@ import { getComponent } from '@/registry'
 import { evaluateBinding } from '@/engine/binding-evaluator'
 import { buildContext } from '@/engine/context-builder'
 import { buildEventHandlers } from '@/engine/event-executor'
+import { useIsPreview } from './PreviewContext'
 import { useEditorStore } from '@/store'
 import SelectionOverlay from './SelectionOverlay'
 
@@ -17,7 +18,9 @@ interface Props {
 
 export default function NodeRenderer({ node, parent = null, index = 0, isRoot = false }: Props) {
   const dataSourceStates = useEditorStore(s => s.dataSourceStates)
-  const previewMode = useEditorStore(s => s.previewMode)
+  const storePreview = useEditorStore(s => s.previewMode)
+  const ctxPreview = useIsPreview()
+  const previewMode = storePreview || ctxPreview
 
   const def = getComponent(node.type)
   const acceptsChildren = def?.acceptsChildren ?? false

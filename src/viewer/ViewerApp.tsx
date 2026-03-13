@@ -1,6 +1,7 @@
 import React, { useEffect } from 'react'
 import NodeRenderer from '@/canvas/NodeRenderer'
 import DataSourceManager from '@/engine/DataSourceManager'
+import { PreviewContext } from '@/canvas/PreviewContext'
 import type { ComponentNode } from '@/types/component-node'
 import type { DataSource } from '@/types/data-source'
 import { useViewerStore } from './viewer-store'
@@ -40,15 +41,17 @@ export default function ViewerApp() {
   const rootFrame = tree.find(n => n.type === 'Frame')
 
   return (
-    <div style={{ width: '100vw', height: '100vh', overflow: 'hidden' }}>
-      <DataSourceManager />
-      {rootFrame ? (
-        <NodeRenderer node={rootFrame} isRoot />
-      ) : (
-        <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', height: '100%', color: '#858585', fontSize: 14 }}>
-          No view data found
-        </div>
-      )}
-    </div>
+    <PreviewContext.Provider value={true}>
+      <div style={{ width: '100vw', height: '100vh', overflow: 'hidden' }}>
+        <DataSourceManager />
+        {rootFrame ? (
+          <NodeRenderer node={rootFrame} isRoot />
+        ) : (
+          <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', height: '100%', color: '#858585', fontSize: 14 }}>
+            No view data found
+          </div>
+        )}
+      </div>
+    </PreviewContext.Provider>
   )
 }

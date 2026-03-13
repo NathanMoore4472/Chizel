@@ -1,5 +1,6 @@
 import React, { useRef } from 'react'
 import { useEditorStore } from '@/store'
+import { useIsPreview } from './PreviewContext'
 import type { ComponentNode } from '@/types/component-node'
 
 interface Props {
@@ -10,10 +11,11 @@ interface Props {
 export default function SelectionOverlay({ node, children }: Props) {
   const selectedId = useEditorStore(s => s.selectedId)
   const selectNode = useEditorStore(s => s.selectNode)
-  const previewMode = useEditorStore(s => s.previewMode)
+  const storePreview = useEditorStore(s => s.previewMode)
+  const ctxPreview = useIsPreview()
   const isSelected = selectedId === node.id
 
-  if (previewMode) {
+  if (storePreview || ctxPreview) {
     return <>{children}</>
   }
 
