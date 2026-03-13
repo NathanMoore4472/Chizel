@@ -1,36 +1,67 @@
 use std::collections::HashMap;
 use tokio::sync::Mutex;
-use sqlx::any::AnyPoolOptions;
-use sqlx::{Column, Row};
+use sqlx::{Column, Row, TypeInfo};
 
-/// Cached connection pools keyed by connection URL
-struct DbPools(Mutex<HashMap<String, sqlx::AnyPool>>);
+// ─── Row → JSON helpers ──────────────────────────────────────────────────────
 
-/// Convert a single AnyRow to a JSON object, trying numeric types first
-fn row_to_json(row: &sqlx::any::AnyRow) -> serde_json::Map<String, serde_json::Value> {
+fn sqlite_row_to_json(row: &sqlx::sqlite::SqliteRow) -> serde_json::Map<String, serde_json::Value> {
     let mut map = serde_json::Map::new();
     for (i, col) in row.columns().iter().enumerate() {
-        let val: serde_json::Value = if let Ok(v) = row.try_get::<i64, _>(i) {
-            serde_json::json!(v)
-        } else if let Ok(v) = row.try_get::<f64, _>(i) {
-            serde_json::json!(v)
-        } else if let Ok(v) = row.try_get::<bool, _>(i) {
-            serde_json::json!(v)
-        } else if let Ok(v) = row.try_get::<String, _>(i) {
-            serde_json::json!(v)
-        } else {
-            serde_json::Value::Null
+        let type_name = col.type_info().name().to_uppercase();
+        let val = match type_name.as_str() {
+            "INTEGER" | "INT" | "BIGINT" | "SMALLINT" | "TINYINT" => {
+                row.try_get::<i64, _>(i).map(|v| serde_json::json!(v)).unwrap_or(serde_json::Value::Null)
+            }
+            "REAL" | "FLOAT" | "DOUBLE" | "NUMERIC" | "DECIMAL" => {
+                row.try_get::<f64, _>(i).map(|v| serde_json::json!(v)).unwrap_or(serde_json::Value::Null)
+            }
+            "BOOLEAN" | "BOOL" => {
+                row.try_get::<bool, _>(i).map(|v| serde_json::json!(v)).unwrap_or(serde_json::Value::Null)
+            }
+            // TEXT, DATETIME, DATE, TIME, BLOB and anything else → String
+            _ => {
+                row.try_get::<String, _>(i).map(|v| serde_json::json!(v)).unwrap_or(serde_json::Value::Null)
+            }
         };
         map.insert(col.name().to_string(), val);
     }
     map
 }
 
-/// Execute a SQL query and return all rows as a JSON array of objects.
-/// connection_url examples:
-///   sqlite:///path/to/db.sqlite
-///   sqlite://:memory:
-///   postgres://user:pass@localhost/mydb
+fn pg_row_to_json(row: &sqlx::postgres::PgRow) -> serde_json::Map<String, serde_json::Value> {
+    let mut map = serde_json::Map::new();
+    for (i, col) in row.columns().iter().enumerate() {
+        let type_name = col.type_info().name().to_uppercase();
+        let val = match type_name.as_str() {
+            "INT2" | "INT4" | "INT8" => {
+                row.try_get::<i64, _>(i).map(|v| serde_json::json!(v)).unwrap_or(serde_json::Value::Null)
+            }
+            "FLOAT4" | "FLOAT8" | "NUMERIC" => {
+                row.try_get::<f64, _>(i).map(|v| serde_json::json!(v)).unwrap_or(serde_json::Value::Null)
+            }
+            "BOOL" => {
+                row.try_get::<bool, _>(i).map(|v| serde_json::json!(v)).unwrap_or(serde_json::Value::Null)
+            }
+            _ => {
+                row.try_get::<String, _>(i).map(|v| serde_json::json!(v)).unwrap_or(serde_json::Value::Null)
+            }
+        };
+        map.insert(col.name().to_string(), val);
+    }
+    map
+}
+
+// ─── Pool cache (driver-specific to avoid `any` driver type limitations) ─────
+
+enum Pool {
+    Sqlite(sqlx::SqlitePool),
+    Postgres(sqlx::PgPool),
+}
+
+struct DbPools(Mutex<HashMap<String, Pool>>);
+
+// ─── Commands ────────────────────────────────────────────────────────────────
+
 #[tauri::command]
 async fn query_database(
     state: tauri::State<'_, DbPools>,
@@ -39,41 +70,47 @@ async fn query_database(
 ) -> Result<Vec<serde_json::Map<String, serde_json::Value>>, String> {
     let mut pools = state.0.lock().await;
 
-    // Reuse existing pool or create a new one
-    let pool = match pools.get(&connection_url) {
-        Some(p) => p.clone(),
-        None => {
-            let p = AnyPoolOptions::new()
-                .max_connections(5)
-                .connect(&connection_url)
-                .await
-                .map_err(|e| format!("Connection failed: {}", e))?;
-            pools.insert(connection_url.clone(), p.clone());
-            p
-        }
-    };
-
-    let rows = sqlx::query(&query)
-        .fetch_all(&pool)
-        .await
-        .map_err(|e| format!("Query failed: {}", e))?;
-
-    let result = rows.iter().map(|r| row_to_json(r)).collect();
-    Ok(result)
+    if connection_url.starts_with("sqlite") {
+        let pool = match pools.get(&connection_url) {
+            Some(Pool::Sqlite(p)) => p.clone(),
+            _ => {
+                let p = sqlx::SqlitePool::connect(&connection_url).await
+                    .map_err(|e| format!("Connection failed: {}", e))?;
+                pools.insert(connection_url.clone(), Pool::Sqlite(p.clone()));
+                p
+            }
+        };
+        let rows = sqlx::query(&query).fetch_all(&pool).await
+            .map_err(|e| format!("Query failed: {}", e))?;
+        Ok(rows.iter().map(sqlite_row_to_json).collect())
+    } else {
+        let pool = match pools.get(&connection_url) {
+            Some(Pool::Postgres(p)) => p.clone(),
+            _ => {
+                let p = sqlx::PgPool::connect(&connection_url).await
+                    .map_err(|e| format!("Connection failed: {}", e))?;
+                pools.insert(connection_url.clone(), Pool::Postgres(p.clone()));
+                p
+            }
+        };
+        let rows = sqlx::query(&query).fetch_all(&pool).await
+            .map_err(|e| format!("Query failed: {}", e))?;
+        Ok(rows.iter().map(pg_row_to_json).collect())
+    }
 }
 
-/// Test a connection without running a query (just connects and disconnects)
 #[tauri::command]
 async fn test_database_connection(connection_url: String) -> Result<String, String> {
-    AnyPoolOptions::new()
-        .max_connections(1)
-        .connect(&connection_url)
-        .await
-        .map_err(|e| format!("Connection failed: {}", e))?;
+    if connection_url.starts_with("sqlite") {
+        sqlx::SqlitePool::connect(&connection_url).await
+            .map_err(|e| format!("Connection failed: {}", e))?;
+    } else {
+        sqlx::PgPool::connect(&connection_url).await
+            .map_err(|e| format!("Connection failed: {}", e))?;
+    }
     Ok("Connected successfully".to_string())
 }
 
-/// Drop a cached pool (call when the user removes a data source)
 #[tauri::command]
 async fn close_database_connection(
     state: tauri::State<'_, DbPools>,
@@ -84,11 +121,10 @@ async fn close_database_connection(
     Ok(())
 }
 
+// ─── App entry ───────────────────────────────────────────────────────────────
+
 #[cfg_attr(mobile, tauri::mobile_entry_point)]
 pub fn run() {
-    // Register sqlx any drivers before building the app
-    sqlx::any::install_default_drivers();
-
     tauri::Builder::default()
         .plugin(tauri_plugin_fs::init())
         .plugin(tauri_plugin_dialog::init())
