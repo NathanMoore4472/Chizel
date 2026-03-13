@@ -17,6 +17,7 @@ type NewKind = 'rest' | 'database'
 
 export default function DataSourcePicker({ propName, nodeId: _nodeId, currentBinding, onSave, onRemove }: Props) {
   const dataSources = useEditorStore(s => s.dataSources)
+  const dataSourceStates = useEditorStore(s => s.dataSourceStates)
   const addDataSource = useEditorStore(s => s.addDataSource)
   const removeDataSource = useEditorStore(s => s.removeDataSource)
 
@@ -239,11 +240,21 @@ export default function DataSourcePicker({ propName, nodeId: _nodeId, currentBin
       )}
 
       {selectedDs?.kind === 'database' && (
-        <div className="text-[10px] text-editor-muted bg-editor-active rounded px-2 py-1">
-          Returns array of row objects. Use <code className="bg-editor-panel px-0.5 rounded">ctx.sources.{selectedSource}</code> in expressions,
-          e.g. <code className="bg-editor-panel px-0.5 rounded">ctx.sources.{selectedSource}[0]?.name</code>
+        <div className="text-[10px] text-editor-muted bg-editor-active rounded px-2 py-1 space-y-0.5">
+          <div>Returns array of row objects.</div>
+          <div><code className="bg-editor-panel px-0.5 rounded">ctx.sources.{selectedSource}[0]?.columnName</code></div>
+          <div className="opacity-60">Debug: <code className="bg-editor-panel px-0.5 rounded">ctx.sourceStates.{selectedSource}.error</code></div>
         </div>
       )}
+
+      {/* Show live status of selected source */}
+      {selectedSource && dataSourceStates[selectedSource] && (() => {
+        const s = dataSourceStates[selectedSource]
+        if (s.loading) return <div className="text-[10px] text-blue-400">Fetching…</div>
+        if (s.error) return <div className="text-[10px] text-red-400 bg-red-400/10 rounded px-2 py-1">Error: {s.error}</div>
+        if (s.lastFetched) return <div className="text-[10px] text-green-400">✓ {Array.isArray(s.data) ? `${(s.data as unknown[]).length} rows` : 'Loaded'}</div>
+        return <div className="text-[10px] text-editor-muted">Not yet fetched</div>
+      })()}
 
       <div className="flex gap-1.5">
         <button onClick={handleSave} disabled={!selectedSource}

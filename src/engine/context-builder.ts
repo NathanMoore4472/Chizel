@@ -23,6 +23,8 @@ export interface EvalContext {
   props: Record<string, unknown>
   state: Record<string, unknown>
   sources: Record<string, unknown>
+  /** Full data source states — useful for debugging: ctx.sourceStates.DB.error / .loading / .lastFetched */
+  sourceStates: Record<string, unknown>
   node: {
     id: string
     type: string
@@ -84,6 +86,7 @@ export function buildContext(
     props: node.props,
     state: {},
     sources,
+    sourceStates: dataSourceStates,
     node: {
       id: node.id,
       type: node.type,
