@@ -49,7 +49,7 @@ export async function fetchDatabaseDataSource(
   try {
     const { invoke } = await import('@tauri-apps/api/core')
     const rows = await invoke<Record<string, unknown>[]>('query_database', {
-      connection_url: source.connectionUrl,
+      connectionUrl: source.connectionUrl,
       query: source.query,
     })
     callbacks.onData(rows)
@@ -65,7 +65,7 @@ export async function testDatabaseConnection(connectionUrl: string): Promise<str
   if (!isTauri()) return 'Database connections require the desktop app'
   try {
     const { invoke } = await import('@tauri-apps/api/core')
-    return await invoke<string>('test_database_connection', { connection_url: connectionUrl })
+    return await invoke<string>('test_database_connection', { connectionUrl })
   } catch (e) {
     throw new Error(e instanceof Error ? e.message : String(e))
   }
@@ -75,7 +75,7 @@ export async function closeDatabaseConnection(connectionUrl: string): Promise<vo
   if (!isTauri()) return
   try {
     const { invoke } = await import('@tauri-apps/api/core')
-    await invoke('close_database_connection', { connection_url: connectionUrl })
+    await invoke('close_database_connection', { connectionUrl })
   } catch { /* ignore */ }
 }
 
