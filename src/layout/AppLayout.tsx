@@ -1,4 +1,5 @@
 import React, { useState, useCallback, useEffect } from 'react'
+import chizelLogo from '../../icons/Chizel.svg'
 import {
   DndContext,
   DragOverlay,
@@ -177,9 +178,7 @@ export default function AppLayout() {
       <div className="flex h-screen w-screen overflow-hidden bg-editor-bg">
         {/* Header */}
         <div className="absolute top-0 left-0 right-0 h-8 bg-editor-panel border-b border-editor-border flex items-center px-3 gap-3 z-50">
-          <span className="text-xs font-bold text-editor-text tracking-wider">
-            ◈ CHIZEL
-          </span>
+          <img src={chizelLogo} alt="Chizel" className="h-4 w-auto" />
           <FileMenu />
         </div>
 
